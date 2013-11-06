@@ -20,6 +20,7 @@
 
 --------------------------------------------------------
 
+<a name='connect'></a>
 ### base.connect(options)
 
 This is shorthand for [establishing a mysql connection](https://github.com/felixge/node-mysql#establishing-connections) and connecting to it. See the linked page for the connection options.
@@ -28,6 +29,7 @@ Returns a `db` object
 
 --------------------------------------------------------
 
+<a name='registerTable'></a>
 ### db.registerTable(localName, options)
 
 Registers a table against the internal table cache. Note, this **does not** create the table in the database (nor does it run any SQL at all).
@@ -55,9 +57,69 @@ db.registerTable('friendship', {
 Returns a `table` object.
 
 --------------------------------------------------------
-
+<a name="table"></a>
 ### db.table(localName)
 
 Return a previously registered table. If the table is not in the internal cache, `db.table` will throw an error.
 
 Returns a `table` object.
+
+--------------------------------------------------------
+
+<a name='get'></a>
+### table.get(conditions, options, callback)
+
+Gets some a single row from the table.
+
+<a name="conditions"></a>
+#### <code>conditions</code>
+
+`conditions` can be in one of two forms: simple or explicit
+
+Simple:
+```js
+albums.get({
+  artist: 'Hookworms',
+  album: 'Teen Dream'
+}, function(err, rows){ ... })
+```
+
+Explicit:
+```js
+albums.get({
+  artist: {
+    value: 'Hookworms',
+    operation: '=',
+  },
+  release_year: {
+    operation: '<=',
+    value: 2012
+  }
+}, function(err, rows){ ... })
+```
+
+You can also mix and match the types and use arrays:
+
+Mixed
+```js
+albums.get({
+  artist: 'David Bowie',
+  release_year: [{
+    operation: '>=',
+    value: 1976
+  }, {
+    operation: '<='
+    value: 1978
+  }]
+}, function(err, rows){ ... })
+```
+
+(NOTE: arrays not yet implemented)
+
+Currently all of the conditions are inclusive – the where statement is joined with `AND` – so the row must match all of the parameters to be included.
+
+#### <code>options</code>
+
+* `sort`: TODO: implement
+* `limit`: TODO: implement
+* `page`: TODO: implement
