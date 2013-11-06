@@ -3,7 +3,7 @@
 ## API
 
 ### Base
-* <a href="#table"><code>base.<b>connect()</b></code></a>
+* <a href="#connect><code>base.<b>connect()</b></code></a>
 
 ### DB
 * <a href="#registerTable"><code>db.<b>registerTable()</b></code></a>
