@@ -56,7 +56,6 @@ const proto = create(connection, {
       table: this._table,
       fields: this._fields,
       conditions: cnd,
-      limit: 1
     }, function (err, data) {
       if (err)
         return callback(err)
@@ -124,7 +123,7 @@ const proto = create(connection, {
       }
 
       meta.insertId = result.insertId
-      return callback(null, row, meta)
+      return callback(null, meta)
     }
   },
 

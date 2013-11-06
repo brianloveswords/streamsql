@@ -65,7 +65,16 @@ Return a previously registered table. If the table is not in the internal cache,
 Returns a `table` object.
 
 --------------------------------------------------------
+<a name='put'></a>
+### table.put(row, callback)
 
+Inserts or updates a single row.
+
+An insert will always be attempted first. If the insert fails with an `ER_DUP_ENTRY` **and** the row contains the table's primaryKey, an update will be attempted
+
+`callback` will receive three arguments: `err`, `result`. Result should have three properties, `row`, `sql`, and `insertId`.
+
+--------------------------------------------------------
 <a name='get'></a>
 ### table.get(conditions, options, callback)
 
@@ -123,3 +132,46 @@ Currently all of the conditions are inclusive – the where statement is joined 
 * `sort`: TODO: implement
 * `limit`: TODO: implement
 * `page`: TODO: implement
+
+--------------------------------------------------------
+<a name='del'></a>
+### table.del(conditions, options, callback)
+
+Deletes rows from the database.
+
+**Be careful** – you can truncate an entire table with this command.
+
+```js
+garbage.del({}, function(err){
+  // garbage is now empty.
+})
+```
+
+* `conditions`: <a href="#conditions">see above</a>
+* `options`:
+  * `limit`: maximum number of rows to delete
+
+--------------------------------------------------------
+<a name='readStream'></a>
+### table.createReadStream(conditions, options, callback)
+
+Create a ReadStream for the table.
+
+* `conditions`: <a href="#conditions">see above</a>
+
+There is a very special which I will go into detail about below:
+
+#### <code>options.relationships</code>
+
+You can define relationships on the data coming out of the stream. This will translate to `JOIN`s at the SQL layer, so you can (potentially) see some performance gains versus populating manually.
+
+`options.relationships` is an object, keyed by property. The property name will be used when attaching the foreign rows to the main row. This will also be used as the source of the foreign key relationship unless a `from` property is defined.
+
+* `table`: the name of the foreign table. This should be a string that can be used with `db.table()` to look up the table cache.
+* `type`: Either `"hasOne"` or `"hasMany"`.
+* `foreign`: The foreign column to match against.
+* `from`: If the key name doesn't correspond to a local column, `from` should be used to specify it. Optional
+* `optional`: Whether or not the relationship is optional (INNER vs LEFT join). Defaults to `false`.
+* `pivot`: This is necessary as a hint to help properly aggregate "hasMany" relationships. Foreign rows will be stored as an array on the current main row until `pivot` column on the main row changes. At that point the foreign rows will start aggregating against the new main row.
+
+TODO: example.
