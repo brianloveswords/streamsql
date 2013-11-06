@@ -9,9 +9,9 @@
 
 ### Table
 
-* <a href="#put">`table.put()`</a>
-* <a href="#get">`table.get()`</a>
-* <a href="#del">`table.del()`</a>
-* <a href="#readStream">`table.createReadStream()`</a>
-* <a href="#keyStream">`table.createKeyStream()`</a>
-* <a href="#writeStream">`table.createWriteStream()`</a>
+* <a href="#put"><code>table.<b>put</b>()</code></a>
+* <a href="#get"><code>table.<b>get</b>()</code></a>
+* <a href="#del"><code>table.<b>del</b>()</code></a>
+* <a href="#readStream"><code>table.<b>createReadStream</b>()</code></a>
+* <a href="#keyStream"><code>table.<b>createKeyStream</b>()</code></a>
+* <a href="#writeStream"><code>table.<b>createWriteStream</b>()</code></a>
