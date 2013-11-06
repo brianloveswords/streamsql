@@ -40,6 +40,7 @@ Registers a table against the internal table cache. Note, this **does not** crea
 * `tableName`: the name of the table in the actual database. Defaults to `localName`
 * `fields`: an array representing all the fields this table has. Example: `['id', 'first_name', 'last_name', 'created_at']`
 * `methods`: methods to add to a row object as it gets emitted from the database. `this` in the function context will be a reference to the row. Example:
+
 ```js
 db.registerTable('friendship', {
   fields: [ 'id', 'screen_name', 'friend' ],
