@@ -28,13 +28,13 @@ Returns a `db` object
 
 --------------------------------------------------------
 
-#### db.registerTable(localName, options)
+### db.registerTable(localName, options)
 
 Registers a table against the internal table cache. Note, this **does not** create the table in the database (nor does it run any SQL at all).
 
 `localName` is the name the table will be registered under. You can use this later with `connection.table()` to get a handle for the table.
 
-##### <code>options</code>
+#### <code>options</code>
 
 * `primaryKey`: the primary key for the table. Defaults to `id`
 * `tableName`: the name of the table in the actual database. Defaults to `localName`
@@ -55,7 +55,7 @@ Returns a `table` object.
 
 --------------------------------------------------------
 
-#### db.table(localName)
+### db.table(localName)
 
 Return a previously registered table. If the table is not in the internal cache, `db.table` will throw an error.
 
