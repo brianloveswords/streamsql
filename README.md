@@ -176,14 +176,14 @@ You can define relationships on the data coming out of the stream. This will tra
 
 #### Example
 
-**user** table
+**user* table
 
 id | handle | name | location
 ---|--------|------|---------
 1 | brianloveswords | brian | brooklyn
 2 | mozilla | mozilla | the internet
 
-**tweet** table
+**food** table
 
 id | user_id | text
 ---|----------|-----
@@ -196,8 +196,8 @@ id | user_id | text
 ```js
 user.createReadStream({}, {
   relationships: {
-    tweets: {
-      table: 'tweet',
+    food: {
+      table: 'food',
       type: 'hasMany',
       foreign: 'user_id',
       from: 'id',
@@ -214,7 +214,7 @@ This would emit two rows:
   handle: 'brianloveswords',
   name: 'brian',
   location: 'brooklyn',
-  tweets: [
+  food: [
     { id: 1, user_id 1,  text: 'tacos' },
     { id: 2, user_id 1,  text: 'pizza' },
     { id: 5, user_id 1,  text: 'salmon' },
@@ -226,7 +226,7 @@ This would emit two rows:
   handle: 'mozilla',
   name: 'mozilla',
   location: 'the internet',
-  tweets: [
+  food: [
     { id: 3, user_id 2, text: 'burittos'},
     { id: 4, user_id 2, text: 'fries' }
   ]
