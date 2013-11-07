@@ -159,6 +159,8 @@ Create a ReadStream for the table.
 
 * `conditions`: <a href="#conditions">see above</a>
 
+#### <code>pause()</code> and <code>resume()</code>
+
 `pause()` and `resume()` will operate on the underlying connection and you are guaranteed to not receive anymore `data` events after calling `pause()` (according to [the documentation](https://github.com/felixge/node-mysql#streaming-query-rows))
 
 #### Events
