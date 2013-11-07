@@ -214,19 +214,11 @@ This would emit two rows:
   handle: 'brianloveswords',
   name: 'brian',
   location: 'brooklyn',
-  tweets: [{
-    id: 1,
-    user_id 1,
-    text: 'tacos'
-  }, {
-    id: 2,
-    user_id 1,
-    text: 'pizza'
-  }, {
-    id: 5,
-    user_id 1,
-    text: 'salmon'
-  }]
+  tweets: [
+    { id: 1, user_id 1,  text: 'tacos' },
+    { id: 2, user_id 1,  text: 'pizza' },
+    { id: 5, user_id 1,  text: 'salmon' },
+  ]
 }
 
 // row 2
@@ -234,14 +226,9 @@ This would emit two rows:
   handle: 'mozilla',
   name: 'mozilla',
   location: 'the internet',
-  tweets: [{
-    id: 3,
-    user_id 2,
-    text: 'burittos'
-  }, {
-    id: 4,
-    user_id 2,
-    text: 'fries'
-  }]
+  tweets: [
+    { id: 3, user_id 2, text: 'burittos'},
+    { id: 4, user_id 2, text: 'fries' }
+  ]
 }
 ```
