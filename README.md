@@ -185,7 +185,7 @@ id | handle | name | location
 
 **tweet** table
 
-id | user_id, | text
+id | user_id | text
 ---|----------|-----
 1 | 1 | tacos
 2 | 1 | pizza
@@ -207,7 +207,7 @@ user.createReadStream({}, {
 ```
 
 This would emit two rows:
-```
+```js
 // row 1
 { id: 1,
   handle: 'brianloveswords',
