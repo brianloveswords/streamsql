@@ -200,7 +200,8 @@ user.createReadStream({}, {
       table: 'tweet',
       type: 'hasMany',
       foreign: 'user_id',
-      from: 'id'
+      from: 'id',
+      pivot: 'id',
     }
   }
 })
