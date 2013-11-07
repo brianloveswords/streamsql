@@ -16,6 +16,7 @@ function connect(options, callback) {
   const conn = mysql.createConnection(options)
   conn.connect(callback)
   return create(dbProto, {
+    tables: {},
     connection: conn,
     query: conn.query.bind(conn)
   })
@@ -26,6 +27,34 @@ const dbProto = {}
 dbProto.close = function close(callback) {
   return this.connection.end(callback)
 }
+
+dbProto.table = function table(name, spec) {
+  var table
+  if (!spec) {
+    table = this.tables[name]
+    if (!table)
+      throw Error('No table registered with the name `'+name+'`')
+    return table
+  }
+
+  return this.registerTable.apply(this, arguments)
+}
+
+dbProto.registerTable = function registerTable(name, spec) {
+  const table = create(tableProto, {
+    table: spec.tableName || name,
+    primary: spec.primaryKey || 'id',
+    fields: spec.fields || [],
+    row: spec.methods || {},
+    db: this,
+  })
+  this.tables[name] = table
+  return table
+}
+
+const tableProto = {}
+
+
 
 // const connection = mysql.createConnection({
 //   host: 'localhost',
