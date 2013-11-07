@@ -184,7 +184,7 @@ You can define relationships on the data coming out of the stream. This will tra
 
 ##### Example
 
-**user* table
+**user** table
 
 id | handle | name | location
 ---|--------|------|---------
