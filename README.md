@@ -174,4 +174,73 @@ You can define relationships on the data coming out of the stream. This will tra
 * `optional`: Whether or not the relationship is optional (INNER vs LEFT join). Defaults to `false`.
 * `pivot`: This is necessary as a hint to help properly aggregate "hasMany" relationships. Foreign rows will be stored as an array on the current main row until `pivot` column on the main row changes. At that point the foreign rows will start aggregating against the new main row.
 
-TODO: example.
+#### Example
+
+**user* table
+
+id | handle | name | location
+---|--------|------|---------
+1 | brianloveswords | brian | brooklyn
+2 | mozilla | mozilla | the internet
+
+**tweet** table
+
+id | user_id, | text
+---|----------|-----
+1 | 1 | tacos
+2 | 1 | pizza
+3 | 2 | burritos
+4 | 2 | fries
+5 | 1 | salmon
+
+```js
+user.createReadStream({}, {
+  relationships: {
+    tweets: {
+      table: 'tweet',
+      type: 'hasMany',
+      foreign: 'user_id',
+      from: 'id'
+    }
+  }
+})
+```
+
+This would emit two rows:
+```
+// row 1
+{ id: 1,
+  handle: 'brianloveswords',
+  name: 'brian',
+  location: 'brooklyn',
+  tweets: [{
+    id: 1,
+    user_id 1,
+    text: 'tacos'
+  }, {
+    id: 2,
+    user_id 1,
+    text: 'pizza'
+  }, {
+    id: 5,
+    user_id 1,
+    text: 'salmon'
+  }]
+}
+
+// row 2
+{ id: 2,
+  handle: 'mozilla',
+  name: 'mozilla',
+  location: 'the internet',
+  tweets: [{
+    id: 3,
+    user_id 2,
+    text: 'burittos'
+  }, {
+    id: 4,
+    user_id 2,
+    text: 'fries'
+  }]
+}
+```
