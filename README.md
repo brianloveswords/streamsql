@@ -153,13 +153,19 @@ garbage.del({}, function(err){
 
 --------------------------------------------------------
 <a name='readStream'></a>
-### table.createReadStream(conditions, options, callback)
+### table.createReadStream(conditions, options)
 
 Create a ReadStream for the table.
 
 * `conditions`: <a href="#conditions">see above</a>
 
-There is a very special which I will go into detail about below:
+`pause()` and `resume()` will operate on the underlying connection and you are guaranteed to not receive anymore `data` events after calling `pause()` (according to [the documentation](https://github.com/felixge/node-mysql#streaming-query-rows))
+
+#### Events
+
+* `data`: Receives one argument, `row`.
+* `error`: If there is an error, it will be emitted here.
+* `end`: When the stream is complete.
 
 #### <code>options.relationships</code>
 
@@ -174,7 +180,7 @@ You can define relationships on the data coming out of the stream. This will tra
 * `optional`: Whether or not the relationship is optional (INNER vs LEFT join). Defaults to `false`.
 * `pivot`: This is necessary as a hint to help properly aggregate "hasMany" relationships. Foreign rows will be stored as an array on the current main row until `pivot` column on the main row changes. At that point the foreign rows will start aggregating against the new main row.
 
-#### Example
+##### Example
 
 **user* table
 
@@ -232,3 +238,7 @@ This would emit two rows:
   ]
 }
 ```
+
+--------------------------------------------------------
+<a name='readStream'></a>
+### table.createKeyStream(conditions, options, callback)
