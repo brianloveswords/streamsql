@@ -243,4 +243,37 @@ This would emit two rows:
 
 --------------------------------------------------------
 <a name='readStream'></a>
-### table.createKeyStream(conditions, options, callback)
+### table.createKeyStream(conditions)
+
+Emits a `data` event for each row with just the primary key of that row.
+
+[See above](#conditions) for definition of `conditions`
+
+--------------------------------------------------------
+<a name='writeStream'></a>
+### table.createWriteStream()
+
+Creates a WriteStream to the table.
+
+The `write()` method on the stream takes row data. When a row is successfully written, a `meta` event is emitted and passed a `meta` object containing `row`, `sql` and `insertId`
+
+An internal buffer is not kept, so all calls to `write()`s will return `false` to signal a ReadStream to `pause()`. Once a row has been succesfully stored, a `drain` event will be emitted.
+
+#### Example
+
+```js
+const ws = band.createWriteStream()
+
+ws.on('error', function (err) {
+  console.log('Oh my!', err)
+})
+
+ws.on('close', function () {
+  console.log('Done!')
+})
+
+ws.write({ name: 'Brian', instrument: 'bass', food: 'burritos' })
+ws.write({ name: 'Jeremy', instrument: 'drums', food: 'cheese' })
+ws.write({ name: 'Travis', instrument: 'bass', food: 'tofu' })
+ws.end()
+```

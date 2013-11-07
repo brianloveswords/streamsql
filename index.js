@@ -225,22 +225,27 @@ const proto = create(connection, {
     return stream
   },
 
-  createKeyStream: function () {
+  createKeyStream: function (conditions) {
+    // TODO: optimize by implementing ability to include/exclude columns
+    // from a query.
     const primaryKey = this._primary
     return (
-      this.createReadStream().pipe(map(function (row, next) {
-        return next(null, row[primaryKey])
-      }))
+      this.createReadStream(conditions)
+        .pipe(map(function (row, next) {
+          return next(null, row[primaryKey])
+        }))
     )
   },
 
-  createWriteStream: function createWriteStream(opts) {
-    opts = opts || {}
+  createWriteStream: function createWriteStream() {
     const conn = this.connection
     const table = this._table
     const stream = new WriteableStream
 
     stream.write = function write(row, callback) {
+      if (typeof callback != 'function')
+        callback = null
+
       const queryString = 'INSERT INTO ' + escapeId(table) + ' SET ?'
       const query = conn.query(queryString, [row], handleResult)
       const meta = {
@@ -256,12 +261,11 @@ const proto = create(connection, {
 
         meta.insertId = result.insertId
 
-        stream.emit('row', row, meta)
         stream.emit('meta', meta)
         stream.emit('drain')
 
         if (callback)
-          callback(null, row, meta)
+          callback(null, meta)
       }
 
       return false;
