@@ -43,7 +43,7 @@ dbProto.table = function table(name, spec) {
 dbProto.registerTable = function registerTable(name, spec) {
   const table = create(tableProto, {
     table: spec.tableName || name,
-    primary: spec.primaryKey || 'id',
+    primaryKey: spec.primaryKey || 'id',
     fields: spec.fields || [],
     row: spec.methods || {},
     db: this,
@@ -54,7 +54,56 @@ dbProto.registerTable = function registerTable(name, spec) {
 
 const tableProto = {}
 
+tableProto.put = function put(row, callback) {
+  const conn = this.db.connection
+  const table = this.table
+  const primaryKey = this.primaryKey
 
+  const queryString = 'INSERT INTO ' + mysql.escapeId(table) + ' SET ?'
+  const tryUpdate = primaryKey in row
+  const query = conn.query(queryString, [row], handleResult.bind(this))
+  const meta = {
+    row: row,
+    sql: query.sql,
+    insertId: null
+  }
+  function handleResult(err, result) {
+    if (err) {
+      if (err.code == 'ER_DUP_ENTRY' && tryUpdate)
+        return this.update(row, callback)
+      return callback(err)
+    }
+
+    meta.insertId = result.insertId
+    return callback(null, meta)
+  }
+}
+
+tableProto.update = function update(row, callback) {
+  const conn = this.db.connection
+  const table = this.table
+  const primaryKey = this.primaryKey
+
+  const queryString =
+    'UPDATE ' + mysql.escapeId(table) +
+    ' SET ? ' +
+    ' WHERE ' + mysql.escapeId(primaryKey) +
+    ' = ' + mysql.escape(row[primaryKey]) +
+    ' LIMIT 1 '
+
+  const query = conn.query(queryString, [row], handleResult.bind(this))
+  const meta = {
+    row: row,
+    sql: query.sql,
+    affectedRows: null
+  }
+  function handleResult(err, result) {
+    if (err)
+      return callback(err)
+    meta.affectedRows = result.affectedRows
+    return callback(null, meta)
+  }
+}
 
 // const connection = mysql.createConnection({
 //   host: 'localhost',

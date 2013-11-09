@@ -1,7 +1,6 @@
 const test = require('tap').test
 const useDb = require('./testdb')
 
-
 test('db.registerTable', function (t) {
   useDb(t, function (db, done) {
     const fields = ['first', 'last', 'age']
