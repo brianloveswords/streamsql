@@ -109,10 +109,10 @@ tableProto.get = function get(cnd, opts, callback) {
   if (typeof opts == 'function')
     callback = opts, opts = {}
 
+  const conn = this.db.connection
   const rowProto = this.row
-
-  const query = this.selectQuery({
-    query: this.db.connection.query,
+  const query = selectQuery({
+    query: conn.query.bind(conn),
     table: this.table,
     fields: this.fields,
     conditions: cnd,
@@ -137,106 +137,6 @@ tableProto.getOne = function getOne(cnd, opts, callback) {
   const singularOpts = { limit: 1, single: true }
   return this.get(cnd, extend(opts, singularOpts), callback)
 }
-
-tableProto.selectQuery = function selectQuery(opts, callback) {
-  const conn = this.db.connection
-
-  var queryString = selectStatement(opts.table, opts.fields, opts.relationships)
-  queryString += whereStatement(opts.conditions, opts.table)
-
-  if (opts.limit)
-    queryString += ' LIMIT ' + opts.limit
-
-  const queryOpts = { sql: queryString }
-
-  if (opts.relationships)
-    queryOpts.nestTables = true
-
-  if (!callback)
-    return conn.query(queryOpts, opts.fields)
-  return conn.query(queryOpts, opts.fields, callback)
-}
-
-
-// const connection = mysql.createConnection({
-//   host: 'localhost',
-//   user: 'root',
-//   database: 'friend_overview',
-// })
-
-// connection.connect()
-
-// module.exports = create(proto, {
-//   connection: connection
-// })
-
-// const tableCache = { }
-// const proto = create(connection, {
-//   connection: connection,
-
-//   _tables: {},
-
-//   registerTable: function (name, spec) {
-//     this._tables[name] = spec
-//     return this.table(name);
-//   },
-
-//   table: function table(name) {
-//     if (tableCache[name])
-//       return tableCache[name]
-
-//     const spec = this._tables[name]
-
-//     if (!spec)
-//       throw new Error('table ' + name + ' is not registered')
-
-//     return (tableCache[name] = create(this, {
-//       _table: spec.tableName || name,
-//       _primary: spec.primaryKey || 'id',
-//       _fields: spec.fields || [],
-//       _proto: spec.methods || {},
-//       row: {}
-//     }))
-//   },
-
-//   get: function get(cnd, opts, callback) {
-//     if (typeof opts == 'function')
-//       callback = opts, opts = null
-
-//     const rowProto = this.rowMethods()
-//     const query = this.selectQuery({
-//       table: this._table,
-//       fields: this._fields,
-//       conditions: cnd,
-//     }, function (err, data) {
-//       if (err)
-//         return callback(err)
-
-//       if (!data.length)
-//         return callback()
-
-//       return callback(null, create(rowProto, data))
-//     })
-//   },
-
-//   selectQuery: function selectQuery(opts, callback) {
-//     const conn = this.connection
-
-//     var queryString = selectStatement(opts.table, opts.fields, opts.relationships)
-//     queryString += whereStatement(opts.conditions, opts.table)
-
-//     if (opts.limit)
-//       queryString += ' LIMIT ' + opts.limit
-
-//     const queryOpts = { sql: queryString }
-
-//     if (opts.relationships)
-//       queryOpts.nestTables = true
-
-//     if (!callback)
-//       return conn.query(queryOpts, opts.fields)
-//     return conn.query(queryOpts, opts.fields, callback)
-//   },
 
 //   del: function (cnd, opts, callback) {
 //     if (typeof opts == 'function')
@@ -431,6 +331,23 @@ tableProto.selectQuery = function selectQuery(opts, callback) {
 //     return stream
 //   }
 // })
+
+function selectQuery(opts, callback) {
+  var queryString = selectStatement(opts.table, opts.fields, opts.relationships)
+  queryString += whereStatement(opts.conditions, opts.table)
+
+  if (opts.limit)
+    queryString += ' LIMIT ' + opts.limit
+
+  const queryOpts = { sql: queryString }
+
+  if (opts.relationships)
+    queryOpts.nestTables = true
+
+  if (!callback)
+    return opts.query(queryOpts, opts.fields)
+  return opts.query(queryOpts, opts.fields, callback)
+}
 
 function selectStatement(table, fields, relationships) {
   if (relationships)
