@@ -72,7 +72,7 @@ Inserts or updates a single row.
 
 An insert will always be attempted first. If the insert fails with an `ER_DUP_ENTRY` **and** the row contains the table's primaryKey, an update will be attempted
 
-`callback` will receive three arguments: `err`, `result`. Result should have three properties, `row`, `sql`, and `insertId`.
+`callback` will receive two arguments: `err`, `result`. Result should have three properties, `row`, `sql`, and `insertId`. If the result of a `put()` is an update, the result will have `affectedRows` instead of `insertId`.
 
 --------------------------------------------------------
 <a name='get'></a>

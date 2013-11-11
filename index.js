@@ -4,11 +4,11 @@ const mysql = require('mysql')
 // const Stream = require('stream')
 // const map = require('map-stream')
 // const WriteableStream = Stream.Writable
-// const extend = require('xtend')
+const extend = require('xtend')
 const keys = Object.keys
 
-// const escapeId = mysql.escapeId.bind(mysql)
-// const escape = mysql.escape.bind(mysql)
+const escapeId = mysql.escapeId.bind(mysql)
+const escape = mysql.escape.bind(mysql)
 
 module.exports = { connect: connect }
 
@@ -59,7 +59,7 @@ tableProto.put = function put(row, callback) {
   const table = this.table
   const primaryKey = this.primaryKey
 
-  const queryString = 'INSERT INTO ' + mysql.escapeId(table) + ' SET ?'
+  const queryString = 'INSERT INTO ' + escapeId(table) + ' SET ?'
   const tryUpdate = primaryKey in row
   const query = conn.query(queryString, [row], handleResult.bind(this))
   const meta = {
@@ -85,10 +85,10 @@ tableProto.update = function update(row, callback) {
   const primaryKey = this.primaryKey
 
   const queryString =
-    'UPDATE ' + mysql.escapeId(table) +
+    'UPDATE ' + escapeId(table) +
     ' SET ? ' +
-    ' WHERE ' + mysql.escapeId(primaryKey) +
-    ' = ' + mysql.escape(row[primaryKey]) +
+    ' WHERE ' + escapeId(primaryKey) +
+    ' = ' + escape(row[primaryKey]) +
     ' LIMIT 1 '
 
   const query = conn.query(queryString, [row], handleResult.bind(this))
@@ -104,6 +104,59 @@ tableProto.update = function update(row, callback) {
     return callback(null, meta)
   }
 }
+
+tableProto.get = function get(cnd, opts, callback) {
+  if (typeof opts == 'function')
+    callback = opts, opts = {}
+
+  const rowProto = this.row
+
+  const query = this.selectQuery({
+    query: this.db.connection.query,
+    table: this.table,
+    fields: this.fields,
+    conditions: cnd,
+  }, opts.single ? singleRow : manyRows)
+
+  function singleRow(err, rows) {
+    if (err || !rows.length) return callback(err)
+    return callback(null, create(rowProto, rows[0]))
+  }
+
+  function manyRows(err, rows) {
+    if (err) return callback(err)
+    return callback(null, rows.map(function (row) {
+      return create(rowProto, row)
+    }))
+  }
+}
+
+tableProto.getOne = function getOne(cnd, opts, callback) {
+  if (typeof opts == 'function')
+    callback = opts, opts = {}
+  const singularOpts = { limit: 1, single: true }
+  return this.get(cnd, extend(opts, singularOpts), callback)
+}
+
+tableProto.selectQuery = function selectQuery(opts, callback) {
+  const conn = this.db.connection
+
+  var queryString = selectStatement(opts.table, opts.fields, opts.relationships)
+  queryString += whereStatement(opts.conditions, opts.table)
+
+  if (opts.limit)
+    queryString += ' LIMIT ' + opts.limit
+
+  const queryOpts = { sql: queryString }
+
+  if (opts.relationships)
+    queryOpts.nestTables = true
+
+  if (!callback)
+    return conn.query(queryOpts, opts.fields)
+  return conn.query(queryOpts, opts.fields, callback)
+}
+
 
 // const connection = mysql.createConnection({
 //   host: 'localhost',
@@ -183,10 +236,6 @@ tableProto.update = function update(row, callback) {
 //     if (!callback)
 //       return conn.query(queryOpts, opts.fields)
 //     return conn.query(queryOpts, opts.fields, callback)
-//   },
-
-//   rowMethods: function () {
-//     return extend(this._proto, this.row)
 //   },
 
 //   del: function (cnd, opts, callback) {
@@ -383,95 +432,95 @@ tableProto.update = function update(row, callback) {
 //   }
 // })
 
-// function selectStatement(table, fields, relationships) {
-//   if (relationships)
-//     return selectWithJoinStatement.apply(null, arguments)
+function selectStatement(table, fields, relationships) {
+  if (relationships)
+    return selectWithJoinStatement.apply(null, arguments)
 
-//   const queryString =
-//     'SELECT '
-//     + fields.map(mysql.escapeId.bind(mysql)).join(',')
-//     + ' FROM '+ mysql.escapeId(table)
-//   return queryString
-// }
+  const queryString =
+    'SELECT '
+    + fields.map(mysql.escapeId.bind(mysql)).join(',')
+    + ' FROM '+ mysql.escapeId(table)
+  return queryString
+}
 
-// function selectWithJoinStatement(table, fields, relationships) {
-//   const foreignTable = relationships
+function selectWithJoinStatement(table, fields, relationships) {
+  const foreignTable = relationships
 
-//   var allFields = fields.slice().map(function (field) {
-//     return [table,field].join('.')
-//   })
+  var allFields = fields.slice().map(function (field) {
+    return [table,field].join('.')
+  })
 
-//   var joinString = ''
+  var joinString = ''
 
-//   forEach(relationships, function (key, rel) {
-//     const otherTable = rel.table
-//     const joinKey = (rel.from || key)
-//     const joinType = rel.optional ? ' LEFT ' : ' INNER '
-//     allFields = allFields.concat(getFields(otherTable))
-//     joinString = joinString +
-//       joinType + ' JOIN '+ escapeId(otherTable) +
-//       ' ON ' + escapeId([table, joinKey].join('.')) +
-//       ' = ' + escapeId([otherTable, rel.foreign].join('.'))
-//   })
+  forEach(relationships, function (key, rel) {
+    const otherTable = rel.table
+    const joinKey = (rel.from || key)
+    const joinType = rel.optional ? ' LEFT ' : ' INNER '
+    allFields = allFields.concat(getFields(otherTable))
+    joinString = joinString +
+      joinType + ' JOIN '+ escapeId(otherTable) +
+      ' ON ' + escapeId([table, joinKey].join('.')) +
+      ' = ' + escapeId([otherTable, rel.foreign].join('.'))
+  })
 
-//   const escapedFields = allFields.map(function (field) {
-//     return escapeId(field)
-//   })
+  const escapedFields = allFields.map(function (field) {
+    return escapeId(field)
+  })
 
-//   var queryString =
-//     'SELECT '
-//     + escapedFields.join(',')
-//     + ' FROM '+ escapeId(table)
-//     + joinString
+  var queryString =
+    'SELECT '
+    + escapedFields.join(',')
+    + ' FROM '+ escapeId(table)
+    + joinString
 
-//   return queryString
-// }
+  return queryString
+}
 
-// function getFields(table) {
-//   if (!tableCache[table])
-//     throw new Error('table ' + escapeId(table) + ' does not appear to be registered')
-//   return tableCache[table]._fields.map(function (field) {
-//     return [table,field].join('.')
-//   })
-// }
+function getFields(table) {
+  if (!tableCache[table])
+    throw new Error('table ' + escapeId(table) + ' does not appear to be registered')
+  return tableCache[table]._fields.map(function (field) {
+    return [table,field].join('.')
+  })
+}
 
-// function deleteStatement(table) {
-//   return 'DELETE FROM ' + escapeId(table)
-// }
+function deleteStatement(table) {
+  return 'DELETE FROM ' + escapeId(table)
+}
 
-// function limitStatement(opts) {
-//   if (!opts || !opts.limit)
-//     return ''
-//   var str = ' LIMIT ' + opts.limit
-//   return str
-// }
+function limitStatement(opts) {
+  if (!opts || !opts.limit)
+    return ''
+  var str = ' LIMIT ' + opts.limit
+  return str
+}
 
-// function whereStatement(conditions, table) {
-//   var cdnString = ''
+function whereStatement(conditions, table) {
+  var cdnString = ''
 
-//   if (!conditions || !keys(conditions).length)
-//     return cdnString
+  if (!conditions || !keys(conditions).length)
+    return cdnString
 
-//   cdnString += ' WHERE '
+  cdnString += ' WHERE '
 
-//   const where = keys(conditions).map(function (key) {
-//     var cnd = conditions[key]
-//     const op = cnd.operation || cnd.op || '='
-//     if (cnd.value)
-//       cnd = cnd.value
-//     const field = escapeId([table, key].join('.'))
-//     return field + ' ' + op + ' ' + escape(cnd)
-//   })
+  const where = keys(conditions).map(function (key) {
+    var cnd = conditions[key]
+    const op = cnd.operation || cnd.op || '='
+    if (cnd.value)
+      cnd = cnd.value
+    const field = escapeId([table, key].join('.'))
+    return field + ' ' + op + ' ' + escape(cnd)
+  })
 
-//   cdnString += where.join(' AND ')
-//   return cdnString
-// }
+  cdnString += where.join(' AND ')
+  return cdnString
+}
 
-// function forEach(obj, fn) {
-//   keys(obj).forEach(function (key) {
-//     return fn(key, obj[key])
-//   })
-// }
+function forEach(obj, fn) {
+  keys(obj).forEach(function (key) {
+    return fn(key, obj[key])
+  })
+}
 
 function create(proto, obj) {
   return keys(obj).reduce(function (acc, key) {
