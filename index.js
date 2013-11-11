@@ -138,18 +138,18 @@ tableProto.getOne = function getOne(cnd, opts, callback) {
   return this.get(cnd, extend(opts, singularOpts), callback)
 }
 
-//   del: function (cnd, opts, callback) {
-//     if (typeof opts == 'function')
-//       callback = opts, opts = null
-//     opts = opts || {}
-//     const conn = this.connection
-//     const table = this._table
-//     const queryString =
-//       deleteStatement(table) +
-//       whereStatement(cnd, table) +
-//       limitStatement(opts)
-//     return conn.query(queryString, callback)
-//   },
+tableProto.del = function del(cnd, opts, callback) {
+  if (typeof opts == 'function')
+    callback = opts, opts = null
+  opts = opts || {}
+  const conn = this.db.connection
+  const table = this.table
+  const queryString =
+    deleteStatement(table) +
+    whereStatement(cnd, table) +
+    limitStatement(opts)
+  return conn.query(queryString, callback)
+}
 
 //   put: function (row, callback) {
 //     const conn = this.connection
