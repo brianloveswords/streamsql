@@ -1,0 +1,7 @@
+DROP TABLE IF EXISTS `book`;
+CREATE TABLE `book` (
+  `id` BIGINT AUTO_INCREMENT PRIMARY KEY,
+  `author_id` BIGINT NOT NULL,
+  `title` VARCHAR(255) NOT NULL,
+  `genre` VARCHAR(255)
+)
