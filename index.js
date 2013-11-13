@@ -7,6 +7,9 @@ const WritableStream = Stream.Writable
 const extend = require('xtend')
 const keys = Object.keys
 
+const util = require('util')
+const fmt = util.format.bind(util)
+
 const escapeId = mysql.escapeId.bind(mysql)
 const escape = mysql.escape.bind(mysql)
 
@@ -242,17 +245,17 @@ tableProto.createReadStream = function createReadStream(conditions, opts) {
   return stream
 }
 
-//   createKeyStream: function (conditions) {
-//     // TODO: optimize by implementing ability to include/exclude columns
-//     // from a query.
-//     const primaryKey = this._primary
-//     return (
-//       this.createReadStream(conditions)
-//         .pipe(map(function (row, next) {
-//           return next(null, row[primaryKey])
-//         }))
-//     )
-//   },
+tableProto.createKeyStream = function createKeyStream(conditions, opts) {
+  // TODO: optimize by implementing ability to include/exclude columns
+  // from a query.
+  const primaryKey = this.primaryKey
+  return (
+    this.createReadStream(conditions, opts)
+      .pipe(map(function (row, next) {
+        return next(null, row[primaryKey])
+      }))
+  )
+}
 
 //   createWriteStream: function createWriteStream() {
 //     const conn = this.connection
@@ -388,24 +391,31 @@ function limitStatement(opts) {
 }
 
 function whereStatement(conditions, table) {
-  var cdnString = ''
-
   if (!conditions || !keys(conditions).length)
-    return cdnString
+    return ''
 
-  cdnString += ' WHERE '
+  var where = ' WHERE '
 
-  const where = keys(conditions).map(function (key) {
+  const clauses = keys(conditions).map(function (key) {
+    const field = escapeId([table, key].join('.'))
     var cnd = conditions[key]
+
+    // if the condition is an array, e.g { release_date: [2000, 1996] },
+    // use an `in` operator.
+    if (Array.isArray(cnd)) {
+      cnd = cnd.map(function (x) { return escape(x) })
+      return fmt('%s IN (%s)', field, cnd.join(','))
+    }
+
     const op = cnd.operation || cnd.op || '='
     if (cnd.value)
       cnd = cnd.value
-    const field = escapeId([table, key].join('.'))
-    return field + ' ' + op + ' ' + escape(cnd)
+
+    return fmt('%s %s %s', field, op, escape(cnd))
   })
 
-  cdnString += where.join(' AND ')
-  return cdnString
+  where += clauses.join(' AND ')
+  return where
 }
 
 function forEach(obj, fn) {

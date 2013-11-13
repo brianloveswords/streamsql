@@ -2,7 +2,6 @@ const test = require('tap').test
 const useDb = require('./testdb')
 const concat = require('concat-stream')
 
-
 const tables = ['user', 'user-data', 'book', 'story', 'review']
 
 test('table.createReadStream: basic', function (t) {
