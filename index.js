@@ -180,6 +180,8 @@ tableProto.createReadStream = function createReadStream(conditions, opts) {
   })
 
   const rowProto = this.row
+  const tableCache = this.db.tables
+
   const stream = new Stream
   stream.pause = conn.pause.bind(conn)
   stream.resume = conn.resume.bind(conn)
@@ -196,11 +198,14 @@ tableProto.createReadStream = function createReadStream(conditions, opts) {
       const current = row[table]
       var hold = false;
       forEach(relationships, function (key, rel) {
-        if (rel.type == 'hasOne') {
-          current[rel.as || key] = row[rel.table]
-        }
+        const pivot = rel.pivot || 'id'
+        const otherTable = rel.table
+        const otherProto = tableCache[otherTable].row
 
-        if (rel.type == 'hasMany') {
+        if (rel.type == 'hasOne')
+          current[rel.as || key] = create(otherProto, row[otherTable])
+
+        else if (rel.type == 'hasMany') {
           hold = true
 
           if (!processing) {
@@ -210,17 +215,15 @@ tableProto.createReadStream = function createReadStream(conditions, opts) {
 
           // when the pivot changes, we want to emit that row and
           // change the `processing` pointer to the current row
-          if (current[rel.pivot] != processing[rel.pivot]) {
-            console.log('current', current[rel.pivot], 'processing', processing[rel.pivot])
-            stream.emit('data', processing)
-
+          if (current[pivot] != processing[pivot]) {
+            stream.emit('data', create(rowProto, processing))
             processing = current
             processing[key] = []
           }
 
-          processing[key].push(row[rel.table])
+          processing[key].push(create(otherProto, row[otherTable]))
         }
-      }.bind(this))
+      })
 
       if (!hold)
         stream.emit('data', create(rowProto, current))
