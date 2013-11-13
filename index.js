@@ -63,24 +63,21 @@ tableProto.put = function put(row, callback) {
   const table = this.table
   const primaryKey = this.primaryKey
 
-  const queryString = 'INSERT INTO ' + escapeId(table) + ' SET ?'
+  const queryString = fmt('INSERT INTO %s SET ?', escapeId(table))
   const tryUpdate = primaryKey in row
-  const query = conn.query(queryString, [row], handleResult.bind(this))
-  const meta = {
-    row: row,
-    sql: query.sql,
-    insertId: null
-  }
-  function handleResult(err, result) {
+  const meta = { row: row, sql: null, insertId: null }
+  const query = conn.query(queryString, [row], function (err, result) {
     if (err) {
       if (err.code == 'ER_DUP_ENTRY' && tryUpdate)
         return this.update(row, callback)
       return callback(err)
     }
 
+    meta.sql = query.sql
     meta.insertId = result.insertId
+
     return callback(null, meta)
-  }
+  }.bind(this))
 }
 
 tableProto.update = function update(row, callback) {
@@ -257,52 +254,66 @@ tableProto.createKeyStream = function createKeyStream(conditions, opts) {
   )
 }
 
-//   createWriteStream: function createWriteStream() {
-//     const conn = this.connection
-//     const table = this._table
-//     const stream = new WriteableStream
+tableProto.createWriteStream = function createWriteStream(conditions, opts) {
+  const conn = this.db.connection
+  const table = this.table
+  const stream = new WritableStream()
+  const emit = stream.emit.bind(stream)
 
-//     stream.write = function write(row, callback) {
-//       const queryString = 'INSERT INTO ' + escapeId(table) + ' SET ?'
-//       const query = conn.query(queryString, [row], handleResult)
-//       const meta = {
-//         row: row,
-//         sql: query.sql,
-//         insertId: null
-//       }
-//       function handleResult(err, result) {
-//         if (err) {
-//           if (callback) callback(err)
-//           return stream.emit('error', err, meta)
-//         }
+  const put = this.put.bind(this)
 
-//         meta.insertId = result.insertId
+  var waiting = 0
+  var ending = false
 
-//         stream.emit('meta', meta)
-//         stream.emit('drain')
+  function drain() {
+    waiting--
+    emit('drain')
+    if (ending && waiting <= 0)
+      done()
+  }
 
-//         if (callback)
-//           callback(null, meta)
-//       }
+  function done() {
+    ;['finish', 'close', 'end'].forEach(emit)
+  }
 
-//       return false;
-//     }
-//     stream.end = function end(row) {
-//       function done() {
-//         ['finish', 'close', 'end'].forEach(stream.emit.bind(stream))
-//       }
-//       if (row)
-//         stream.write(row, function (err) {
-//           // errors will be handled by `write`
-//           if (!err) done()
-//         })
+  stream.write = function write(row, callback) {
+    waiting++
+    put(row, function handleResult(err, meta) {
+      drain()
 
-//       else done()
-//     }
+      if (err) {
+        if (callback) callback(err)
+        return emit('error', err, meta)
+      }
 
-//     return stream
-//   }
-// })
+      emit('meta', meta)
+
+      if (callback && typeof callback == 'function')
+        callback(null, meta)
+    })
+
+    return false;
+  }
+
+  stream.end = function end(row, callback) {
+    if (typeof row == 'function')
+      callback = row, row = null
+
+    if (callback)
+      stream.on('end', callback)
+
+    if (row) {
+      stream.write(row)
+      return stream.end()
+    }
+
+    if (waiting > 0)
+      ending = true
+    else done()
+  }
+
+  return stream
+}
 
 function selectQuery(opts, callback) {
   var queryString = selectStatement(opts)
