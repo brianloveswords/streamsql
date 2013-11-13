@@ -1,9 +1,9 @@
 // #TODO: rewrite createWriteStream to take advantage of `put` and `update`
 
 const mysql = require('mysql')
-// const Stream = require('stream')
-// const map = require('map-stream')
-// const WriteableStream = Stream.Writable
+const Stream = require('stream')
+const map = require('map-stream')
+const WritableStream = Stream.Writable
 const extend = require('xtend')
 const keys = Object.keys
 
@@ -109,6 +109,9 @@ tableProto.get = function get(cnd, opts, callback) {
   if (typeof opts == 'function')
     callback = opts, opts = {}
 
+  if (typeof cnd == 'function')
+    callback = cnd, cnd = {}, opts = {}
+
   const conn = this.db.connection
   const rowProto = this.row
   const query = selectQuery({
@@ -151,127 +154,79 @@ tableProto.del = function del(cnd, opts, callback) {
   return conn.query(queryString, callback)
 }
 
-//   put: function (row, callback) {
-//     const conn = this.connection
-//     const table = this._table
-//     const primaryKey = this._primary
-//     const queryString = 'INSERT INTO ' + mysql.escapeId(table) + ' SET ?'
-//     const tryUpdate = primaryKey in row
-//     const query = conn.query(queryString, [row], handleResult.bind(this))
-//     const meta = {
-//       row: row,
-//       sql: query.sql,
-//       insertId: null
-//     }
-//     function handleResult(err, result) {
-//       if (err) {
-//         if (err.code == 'ER_DUP_ENTRY' && tryUpdate)
-//           return this._update(row, callback)
-//         return callback(err)
-//       }
+tableProto.createReadStream = function createReadStream(conditions, opts) {
+  opts = opts || {}
+  const conn = this.db.connection
+  const fields = this.fields
+  const relationships = opts.relationships
+  const table = this.table
+  const query = selectQuery({
+    query: conn.query.bind(conn),
+    table: table,
+    fields: opts.fields || this.fields,
+    conditions: conditions,
+    relationships: opts.relationships,
+  })
 
-//       meta.insertId = result.insertId
-//       return callback(null, meta)
-//     }
-//   },
+  const rowProto = this.row
+  const stream = new Stream
+  stream.pause = conn.pause.bind(conn)
+  stream.resume = conn.resume.bind(conn)
+  query.on('error', stream.emit.bind(stream, 'error'))
+  if (!relationships) {
+    query.on('result', function onResult(row) {
+      stream.emit('data', create(rowProto, row))
+    })
+    query.on('end', stream.emit.bind(stream, 'end'))
+  } else {
+    var processing
 
-//   _update: function (row, callback){
-//     const conn = this.connection
-//     const table = this._table
-//     const primaryKey = this._primary
+    query.on('result', function onResult(row) {
+      const current = row[table]
+      var hold = false;
+      forEach(relationships, function (key, rel) {
+        if (rel.type == 'hasOne') {
+          current[rel.as || key] = row[rel.table]
+        }
 
-//     const queryString =
-//       'UPDATE ' + mysql.escapeId(table) +
-//       ' SET ? WHERE ' + mysql.escapeId(primaryKey) +
-//       ' = ' + mysql.escape(row[primaryKey]) +
-//       ' LIMIT 1 '
+        if (rel.type == 'hasMany') {
+          hold = true
 
-//     const query = conn.query(queryString, [row], handleResult.bind(this))
-//     const meta = {
-//       row: row,
-//       sql: query.sql,
-//       affectedRows: null
-//     }
-//     function handleResult(err, result) {
-//       if (err)
-//         return callback(err)
-//       meta.affectedRows = result.affectedRows
-//       return callback(null, row, meta)
-//     }
-//   },
+          if (!processing) {
+            processing = current
+            processing[key] = []
+          }
 
-//   createReadStream: function createReadStream(conditions, opts) {
-//     opts = opts || {}
-//     const conn = this.connection
-//     const fields = this._fields
-//     const relationships = opts.relationships
-//     const table = this._table
-//     const query = this.selectQuery({
-//       table: table,
-//       fields: opts.fields || this._fields,
-//       conditions: conditions,
-//       relationships: opts.relationships,
-//     })
+          // when the pivot changes, we want to emit that row and
+          // change the `processing` pointer to the current row
+          if (current[rel.pivot] != processing[rel.pivot]) {
+            console.log('current', current[rel.pivot], 'processing', processing[rel.pivot])
+            stream.emit('data', processing)
 
-//     const rowProto = this.rowMethods()
-//     const stream = new Stream
-//     stream.pause = conn.pause.bind(conn)
-//     stream.resume = conn.resume.bind(conn)
-//     query.on('error', stream.emit.bind(stream, 'error'))
-//     if (!relationships) {
-//       query.on('result', function onResult(row) {
-//         stream.emit('data', create(rowProto, row))
-//       })
-//       query.on('end', stream.emit.bind(stream, 'end'))
-//     } else {
-//       var processing
+            processing = current
+            processing[key] = []
+          }
 
-//       query.on('result', function onResult(row) {
-//         const current = row[table]
-//         var hold = false;
-//         forEach(relationships, function (key, rel) {
-//           if (rel.type == 'hasOne') {
-//             current[rel.as || key] = row[rel.table]
-//           }
+          processing[key].push(row[rel.table])
+        }
+      }.bind(this))
 
-//           if (rel.type == 'hasMany') {
-//             hold = true
+      if (!hold)
+        stream.emit('data', current)
+    })
 
-//             if (!processing) {
-//               processing = current
-//               processing[key] = []
-//             }
+    query.on('end', function () {
+      if (processing)
+        stream.emit('data', processing)
+      stream.emit('end')
+    })
+  }
 
-//             // when the pivot changes, we want to emit that row and
-//             // change the `processing` pointer to the current row
-//             if (current[rel.pivot] != processing[rel.pivot]) {
-//               console.log('current', current[rel.pivot], 'processing', processing[rel.pivot])
-//               stream.emit('data', processing)
+  if (opts.debug)
+    console.error(query.sql)
 
-//               processing = current
-//               processing[key] = []
-//             }
-
-//             processing[key].push(row[rel.table])
-//           }
-//         }.bind(this))
-
-//         if (!hold)
-//           stream.emit('data', current)
-//       })
-
-//       query.on('end', function () {
-//         if (processing)
-//           stream.emit('data', processing)
-//         stream.emit('end')
-//       })
-//     }
-
-//     if (opts.debug)
-//       console.error(query.sql)
-
-//     return stream
-//   },
+  return stream
+}
 
 //   createKeyStream: function (conditions) {
 //     // TODO: optimize by implementing ability to include/exclude columns
