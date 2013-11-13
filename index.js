@@ -46,6 +46,7 @@ dbProto.registerTable = function registerTable(name, spec) {
     primaryKey: spec.primaryKey || 'id',
     fields: spec.fields || [],
     row: spec.methods || {},
+    relationships: spec.relationships || {},
     db: this,
   })
   this.tables[name] = table
@@ -115,6 +116,7 @@ tableProto.get = function get(cnd, opts, callback) {
   const conn = this.db.connection
   const rowProto = this.row
   const query = selectQuery({
+    tableCache: this.db.tables,
     query: conn.query.bind(conn),
     table: this.table,
     fields: this.fields,
@@ -158,14 +160,23 @@ tableProto.createReadStream = function createReadStream(conditions, opts) {
   opts = opts || {}
   const conn = this.db.connection
   const fields = this.fields
-  const relationships = opts.relationships
+  var relationships = opts.relationships
+
+  if (typeof relationships == 'boolean') {
+    relationships = (relationships === true)
+      ? this.relationships
+      : {}
+  }
+
   const table = this.table
+
   const query = selectQuery({
     query: conn.query.bind(conn),
     table: table,
-    fields: opts.fields || this.fields,
+    tableCache: this.db.tables,
+    fields: fields || this.fields,
     conditions: conditions,
-    relationships: opts.relationships,
+    relationships: relationships,
   })
 
   const rowProto = this.row
@@ -212,7 +223,7 @@ tableProto.createReadStream = function createReadStream(conditions, opts) {
       }.bind(this))
 
       if (!hold)
-        stream.emit('data', current)
+        stream.emit('data', create(rowProto, current))
     })
 
     query.on('end', function () {
@@ -288,7 +299,7 @@ tableProto.createReadStream = function createReadStream(conditions, opts) {
 // })
 
 function selectQuery(opts, callback) {
-  var queryString = selectStatement(opts.table, opts.fields, opts.relationships)
+  var queryString = selectStatement(opts)
   queryString += whereStatement(opts.conditions, opts.table)
 
   if (opts.limit)
@@ -304,19 +315,25 @@ function selectQuery(opts, callback) {
   return opts.query(queryOpts, opts.fields, callback)
 }
 
-function selectStatement(table, fields, relationships) {
+function selectStatement(opts) {
+  const table = opts.table
+  const fields = opts.fields
+  const relationships = opts.relationships
   if (relationships)
     return selectWithJoinStatement.apply(null, arguments)
 
   const queryString =
     'SELECT '
-    + fields.map(mysql.escapeId.bind(mysql)).join(',')
-    + ' FROM '+ mysql.escapeId(table)
+    + fields.map(escapeId.bind(mysql)).join(',')
+    + ' FROM '+ escapeId(table)
   return queryString
 }
 
-function selectWithJoinStatement(table, fields, relationships) {
-  const foreignTable = relationships
+function selectWithJoinStatement(opts) {
+  const table = opts.table
+  const fields = opts.fields
+  const relationships = opts.relationships
+  const tableCache = opts.tableCache
 
   var allFields = fields.slice().map(function (field) {
     return [table,field].join('.')
@@ -328,7 +345,7 @@ function selectWithJoinStatement(table, fields, relationships) {
     const otherTable = rel.table
     const joinKey = (rel.from || key)
     const joinType = rel.optional ? ' LEFT ' : ' INNER '
-    allFields = allFields.concat(getFields(otherTable))
+    allFields = allFields.concat(getFields(otherTable, tableCache))
     joinString = joinString +
       joinType + ' JOIN '+ escapeId(otherTable) +
       ' ON ' + escapeId([table, joinKey].join('.')) +
@@ -348,10 +365,10 @@ function selectWithJoinStatement(table, fields, relationships) {
   return queryString
 }
 
-function getFields(table) {
+function getFields(table, tableCache) {
   if (!tableCache[table])
     throw new Error('table ' + escapeId(table) + ' does not appear to be registered')
-  return tableCache[table]._fields.map(function (field) {
+  return tableCache[table].fields.map(function (field) {
     return [table,field].join('.')
   })
 }
