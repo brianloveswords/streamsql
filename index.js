@@ -1,5 +1,3 @@
-// #TODO: rewrite createWriteStream to take advantage of `put` and `update`
-
 const mysql = require('mysql')
 const Stream = require('stream')
 const map = require('map-stream')
