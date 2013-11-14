@@ -34,11 +34,6 @@ INSERT INTO `book` SET
 
 INSERT INTO `book` SET
   `author_id` = 1,
-  `title` = 'CivilWarLand in Bad Decline',
-  `release_date` = '1996-01';
-
-INSERT INTO `book` SET
-  `author_id` = 1,
   `title` = 'Tenth of December',
   `release_date` = '2013-01';
 
