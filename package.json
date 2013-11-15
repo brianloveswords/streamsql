@@ -14,11 +14,11 @@
   },
   "devDependencies": {
     "tap": "~0.4.4",
-    "eslint": "~0.1.1"
+    "jshint": "~2.3.0"
   },
   "scripts": {
-    "test": "tap test/*.test.js",
-    "lint": "eslint -c eslint.json index.js"
+    "test": "npm run lint && tap test/*.test.js",
+    "lint": "jshint index.js lib/*.js"
   },
   "repository": {
     "type": "git",

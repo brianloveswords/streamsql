@@ -1,18 +1,19 @@
 const mysql = require('mysql')
 const Stream = require('stream')
+const util = require('util')
+const sql = require('./lib/sql')
 const map = require('map-stream')
-const WritableStream = Stream.Writable
 const extend = require('xtend')
 const create = require('./lib/create')
+const forEach = require('./lib/foreach')
 const keys = Object.keys
-
-const util = require('util')
 const fmt = util.format.bind(util)
-
 const escapeId = mysql.escapeId.bind(mysql)
 const escape = mysql.escape.bind(mysql)
+const WritableStream = Stream.Writable
 
 const dbProto = {}
+const tableProto = {}
 
 dbProto.close = function close(callback) {
   return this.connection.end(callback)
@@ -24,8 +25,9 @@ dbProto.table = function table(name, spec) {
     return this.registerTable.apply(this, arguments)
   }
   tableDef = this.tables[name]
-  if (!tableDef)
-    throw Error('No table registered with the name `'+name+'`')
+  if (!tableDef) {
+    throw new Error('No table registered with the name `'+name+'`')
+  }
   return tableDef
 }
 
@@ -42,8 +44,6 @@ dbProto.registerTable = function registerTable(name, spec) {
   return table
 }
 
-const tableProto = {}
-
 tableProto.put = function put(row, callback) {
   const conn = this.db.connection
   const table = this.table
@@ -54,8 +54,9 @@ tableProto.put = function put(row, callback) {
   const meta = { row: row, sql: null, insertId: null }
   const query = conn.query(queryString, [row], function (err, result) {
     if (err) {
-      if (err.code == 'ER_DUP_ENTRY' && tryUpdate)
+      if (err.code == 'ER_DUP_ENTRY' && tryUpdate) {
         return this.update(row, callback)
+      }
       return callback(err)
     }
 
@@ -83,8 +84,7 @@ tableProto.update = function update(row, callback) {
     affectedRows: null
   }
   function handleResult(err, result) {
-    if (err)
-      return callback(err)
+    if (err) { return callback(err) }
     meta.affectedRows = result.affectedRows
     return callback(null, meta)
   }
@@ -96,12 +96,15 @@ tableProto.get = function get(cnd, opts, callback) {
     opts = {}
   }
 
-  if (typeof cnd == 'function')
-    callback = cnd, cnd = {}, opts = {}
+  if (typeof cnd == 'function') {
+    callback = cnd
+    cnd = {}
+    opts = {}
+  }
 
   const conn = this.db.connection
   const rowProto = this.row
-  const query = selectQuery({
+  const query = sql.selectQuery({
     tableCache: this.db.tables,
     query: conn.query.bind(conn),
     table: this.table,
@@ -110,38 +113,43 @@ tableProto.get = function get(cnd, opts, callback) {
   }, opts.single ? singleRow : manyRows)
 
   function singleRow(err, rows) {
-    if (err || !rows.length) return callback(err)
+    if (err || !rows.length) { return callback(err) }
     return callback(null, create(rowProto, rows[0]))
   }
 
   function manyRows(err, rows) {
-    if (err) return callback(err)
+    if (err) { return callback(err) }
     return callback(null, rows.map(function (row) {
       return create(rowProto, row)
     }))
   }
 
-  if (opts.debug)
+  if (opts.debug) {
     console.error(query.sql)
+  }
 }
 
 tableProto.getOne = function getOne(cnd, opts, callback) {
-  if (typeof opts == 'function')
-    callback = opts, opts = {}
+  if (typeof opts == 'function') {
+    callback = opts
+    opts = {}
+  }
   const singularOpts = { limit: 1, single: true }
   return this.get(cnd, extend(opts, singularOpts), callback)
 }
 
 tableProto.del = function del(cnd, opts, callback) {
-  if (typeof opts == 'function')
-    callback = opts, opts = null
+  if (typeof opts == 'function') {
+    callback = opts
+    opts = null
+  }
   opts = opts || {}
   const conn = this.db.connection
   const table = this.table
   const queryString =
-    deleteStatement(table) +
-    whereStatement(cnd, table) +
-    limitStatement(opts)
+    sql.deleteStatement(table) +
+    sql.whereStatement(cnd, table) +
+    sql.limitStatement(opts)
   return conn.query(queryString, callback)
 }
 
@@ -149,17 +157,16 @@ tableProto.createReadStream = function createReadStream(conditions, opts) {
   opts = opts || {}
   const conn = this.db.connection
   const fields = this.fields
-  var relationships = opts.relationships
+  var relationships = opts.relationships || {}
 
-  if (typeof relationships == 'boolean') {
-    relationships = (relationships === true)
-      ? this.relationships
-      : {}
+  if (typeof relationships == 'boolean' &&
+      relationships === true) {
+    relationships = this.relationships
   }
 
   const table = this.table
 
-  const query = selectQuery({
+  const query = sql.selectQuery({
     query: conn.query.bind(conn),
     table: table,
     tableCache: this.db.tables,
@@ -171,7 +178,7 @@ tableProto.createReadStream = function createReadStream(conditions, opts) {
   const rowProto = this.row
   const tableCache = this.db.tables
 
-  const stream = new Stream
+  const stream = new Stream()
   stream.pause = conn.pause.bind(conn)
   stream.resume = conn.resume.bind(conn)
   query.on('error', stream.emit.bind(stream, 'error'))
@@ -191,8 +198,9 @@ tableProto.createReadStream = function createReadStream(conditions, opts) {
         const otherTable = rel.table
         const otherProto = tableCache[otherTable].row
 
-        if (rel.type == 'hasOne')
+        if (rel.type == 'hasOne') {
           current[rel.as || key] = create(otherProto, row[otherTable])
+        }
 
         else if (rel.type == 'hasMany') {
           hold = true
@@ -214,19 +222,22 @@ tableProto.createReadStream = function createReadStream(conditions, opts) {
         }
       })
 
-      if (!hold)
+      if (!hold) {
         stream.emit('data', create(rowProto, current))
+      }
     })
 
     query.on('end', function () {
-      if (processing)
+      if (processing) {
         stream.emit('data', processing)
+      }
       stream.emit('end')
     })
   }
 
-  if (opts.debug)
+  if (opts.debug) {
     console.error(query.sql)
+  }
 
   return stream
 }
@@ -243,7 +254,7 @@ tableProto.createKeyStream = function createKeyStream(conditions, opts) {
   )
 }
 
-tableProto.createWriteStream = function createWriteStream(conditions, opts) {
+tableProto.createWriteStream = function createWriteStream() {
   const conn = this.db.connection
   const table = this.table
   const stream = new WritableStream()
@@ -254,174 +265,62 @@ tableProto.createWriteStream = function createWriteStream(conditions, opts) {
   var waiting = 0
   var ending = false
 
-  function drain() {
-    waiting--
-    emit('drain')
-    if (ending && waiting <= 0)
-      done()
+  function done() {
+    ['finish', 'close', 'end'].forEach(emit)
   }
 
-  function done() {
-    ;['finish', 'close', 'end'].forEach(emit)
+  function drain() {
+    waiting -= 1
+    emit('drain')
+    if (ending && waiting <= 0) {
+      done()
+    }
   }
 
   stream.write = function write(row, callback) {
-    waiting++
+    waiting += 1
+
     put(row, function handleResult(err, meta) {
       drain()
 
       if (err) {
-        if (callback) callback(err)
+        if (callback) { callback(err) }
         return emit('error', err, meta)
       }
 
       emit('meta', meta)
 
-      if (callback && typeof callback == 'function')
+      if (callback && typeof callback == 'function') {
         callback(null, meta)
+      }
     })
 
     return false;
   }
 
   stream.end = function end(row, callback) {
-    if (typeof row == 'function')
-      callback = row, row = null
+    if (typeof row == 'function') {
+      callback = row
+      row = null
+    }
 
-    if (callback)
+    if (callback) {
       stream.on('end', callback)
+    }
 
     if (row) {
       stream.write(row)
       return stream.end()
     }
 
-    if (waiting > 0)
+    if (waiting > 0) {
       ending = true
-    else done()
+    } else {
+      done()
+    }
   }
 
   return stream
-}
-
-function selectQuery(opts, callback) {
-  var queryString = selectStatement(opts)
-  queryString += whereStatement(opts.conditions, opts.table)
-
-  if (opts.limit)
-    queryString += ' LIMIT ' + opts.limit
-
-  const queryOpts = { sql: queryString }
-
-  if (opts.relationships)
-    queryOpts.nestTables = true
-
-  if (!callback)
-    return opts.query(queryOpts, opts.fields)
-  return opts.query(queryOpts, opts.fields, callback)
-}
-
-function selectStatement(opts) {
-  const table = opts.table
-  const fields = opts.fields
-  const relationships = opts.relationships
-  if (relationships)
-    return selectWithJoinStatement.apply(null, arguments)
-
-  const queryString =
-    'SELECT '
-    + fields.map(escapeId.bind(mysql)).join(',')
-    + ' FROM '+ escapeId(table)
-  return queryString
-}
-
-function selectWithJoinStatement(opts) {
-  const table = opts.table
-  const fields = opts.fields
-  const relationships = opts.relationships
-  const tableCache = opts.tableCache
-
-  var allFields = fields.slice().map(function (field) {
-    return [table,field].join('.')
-  })
-
-  var joinString = ''
-
-  forEach(relationships, function (key, rel) {
-    const otherTable = rel.table
-    const joinKey = (rel.from || key)
-    const joinType = rel.optional ? ' LEFT ' : ' INNER '
-    allFields = allFields.concat(getFields(otherTable, tableCache))
-    joinString = joinString +
-      joinType + ' JOIN '+ escapeId(otherTable) +
-      ' ON ' + escapeId([table, joinKey].join('.')) +
-      ' = ' + escapeId([otherTable, rel.foreign].join('.'))
-  })
-
-  const escapedFields = allFields.map(function (field) {
-    return escapeId(field)
-  })
-
-  var queryString =
-    'SELECT '
-    + escapedFields.join(',')
-    + ' FROM '+ escapeId(table)
-    + joinString
-
-  return queryString
-}
-
-function getFields(table, tableCache) {
-  if (!tableCache[table])
-    throw new Error('table ' + escapeId(table) + ' does not appear to be registered')
-  return tableCache[table].fields.map(function (field) {
-    return [table,field].join('.')
-  })
-}
-
-function deleteStatement(table) {
-  return 'DELETE FROM ' + escapeId(table)
-}
-
-function limitStatement(opts) {
-  if (!opts || !opts.limit)
-    return ''
-  var str = ' LIMIT ' + opts.limit
-  return str
-}
-
-function whereStatement(conditions, table) {
-  if (!conditions || !keys(conditions).length)
-    return ''
-
-  var where = ' WHERE '
-
-  const clauses = keys(conditions).map(function (key) {
-    const field = escapeId([table, key].join('.'))
-    var cnd = conditions[key]
-
-    // if the condition is an array, e.g { release_date: [2000, 1996] },
-    // use an `in` operator.
-    if (Array.isArray(cnd)) {
-      cnd = cnd.map(function (x) { return escape(x) })
-      return fmt('%s IN (%s)', field, cnd.join(','))
-    }
-
-    const op = cnd.operation || cnd.op || '='
-    if (cnd.value)
-      cnd = cnd.value
-
-    return fmt('%s %s %s', field, op, escape(cnd))
-  })
-
-  where += clauses.join(' AND ')
-  return where
-}
-
-function forEach(obj, fn) {
-  keys(obj).forEach(function (key) {
-    return fn(key, obj[key])
-  })
 }
 
 module.exports = {
