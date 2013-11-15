@@ -3,6 +3,7 @@ const Stream = require('stream')
 const map = require('map-stream')
 const WritableStream = Stream.Writable
 const extend = require('xtend')
+const create = require('./lib/create')
 const keys = Object.keys
 
 const util = require('util')
@@ -11,18 +12,6 @@ const fmt = util.format.bind(util)
 const escapeId = mysql.escapeId.bind(mysql)
 const escape = mysql.escape.bind(mysql)
 
-module.exports = { connect: connect }
-
-function connect(options, callback) {
-  const conn = mysql.createConnection(options)
-  conn.connect(callback)
-  return create(dbProto, {
-    tables: {},
-    connection: conn,
-    query: conn.query.bind(conn)
-  })
-}
-
 const dbProto = {}
 
 dbProto.close = function close(callback) {
@@ -30,15 +19,14 @@ dbProto.close = function close(callback) {
 }
 
 dbProto.table = function table(name, spec) {
-  var table
-  if (!spec) {
-    table = this.tables[name]
-    if (!table)
-      throw Error('No table registered with the name `'+name+'`')
-    return table
+  var tableDef
+  if (spec) {
+    return this.registerTable.apply(this, arguments)
   }
-
-  return this.registerTable.apply(this, arguments)
+  tableDef = this.tables[name]
+  if (!tableDef)
+    throw Error('No table registered with the name `'+name+'`')
+  return tableDef
 }
 
 dbProto.registerTable = function registerTable(name, spec) {
@@ -83,12 +71,10 @@ tableProto.update = function update(row, callback) {
   const table = this.table
   const primaryKey = this.primaryKey
 
-  const queryString =
-    'UPDATE ' + escapeId(table) +
-    ' SET ? ' +
-    ' WHERE ' + escapeId(primaryKey) +
-    ' = ' + escape(row[primaryKey]) +
-    ' LIMIT 1 '
+  const queryString = fmt('UPDATE %s SET ? WHERE %s = %s LIMIT 1',
+                          escapeId(table),
+                          escapeId(primaryKey),
+                          escape(row[primaryKey]))
 
   const query = conn.query(queryString, [row], handleResult.bind(this))
   const meta = {
@@ -105,8 +91,10 @@ tableProto.update = function update(row, callback) {
 }
 
 tableProto.get = function get(cnd, opts, callback) {
-  if (typeof opts == 'function')
-    callback = opts, opts = {}
+  if (typeof opts == 'function') {
+    callback = opts
+    opts = {}
+  }
 
   if (typeof cnd == 'function')
     callback = cnd, cnd = {}, opts = {}
@@ -132,6 +120,9 @@ tableProto.get = function get(cnd, opts, callback) {
       return create(rowProto, row)
     }))
   }
+
+  if (opts.debug)
+    console.error(query.sql)
 }
 
 tableProto.getOne = function getOne(cnd, opts, callback) {
@@ -433,8 +424,14 @@ function forEach(obj, fn) {
   })
 }
 
-function create(proto, obj) {
-  return keys(obj).reduce(function (acc, key) {
-    return (acc[key] = obj[key], acc)
-  }, Object.create(proto))
+module.exports = {
+  connect: function connect(options, callback) {
+    const conn = mysql.createConnection(options)
+    conn.connect(callback)
+    return create(dbProto, {
+      tables: {},
+      connection: conn,
+      query: conn.query.bind(conn)
+    })
+  }
 }
