@@ -1,6 +1,6 @@
 {
   "name": "mysql-stream-db",
-  "version": "0.0.0",
+  "version": "0.0.1",
   "description": "Streaming MySQL ORM",
   "main": "index.js",
   "directories": {
