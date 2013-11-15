@@ -1,0 +1,35 @@
+{
+  "name": "mysql-stream-db",
+  "version": "0.0.0",
+  "description": "Streaming MySQL ORM",
+  "main": "index.js",
+  "directories": {
+    "test": "test"
+  },
+  "dependencies": {
+    "concat-stream": "~1.1.0",
+    "map-stream": "~0.0.3",
+    "mysql": "~2.0.0-alpha9",
+    "xtend": "~2.1.1"
+  },
+  "devDependencies": {
+    "tap": "~0.4.4"
+  },
+  "scripts": {
+    "test": "tap test/*.test.js"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git://github.com/brianloveswords/mysql-stream-db.git"
+  },
+  "keywords": [
+    "streams",
+    "mysql",
+    "orm"
+  ],
+  "author": "Brian J Brennan",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/brianloveswords/mysql-stream-db/issues"
+  }
+}
