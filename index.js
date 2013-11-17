@@ -4,9 +4,8 @@ const util = require('util')
 const sql = require('./lib/sql')
 const map = require('map-stream')
 const extend = require('xtend')
+const _ = require('lodash')
 const create = require('./lib/create')
-const forEach = require('./lib/foreach')
-const keys = Object.keys
 const fmt = util.format.bind(util)
 const escapeId = mysql.escapeId.bind(mysql)
 const escape = mysql.escape.bind(mysql)
@@ -110,6 +109,8 @@ tableProto.get = function get(cnd, opts, callback) {
     table: this.table,
     fields: this.fields,
     conditions: cnd,
+    limit: opts.limit,
+    sort: opts.sort || opts.order ||opts.orderBy
   }, opts.single ? singleRow : manyRows)
 
   function singleRow(err, rows) {
@@ -173,6 +174,8 @@ tableProto.createReadStream = function createReadStream(conditions, opts) {
     fields: fields || this.fields,
     conditions: conditions,
     relationships: relationships,
+    limit: opts.limit,
+    sort: opts.sort || opts.order || opts.orderBy
   })
 
   const rowProto = this.row
@@ -193,7 +196,7 @@ tableProto.createReadStream = function createReadStream(conditions, opts) {
     query.on('result', function onResult(row) {
       const current = row[table]
       var hold = false;
-      forEach(relationships, function (key, rel) {
+      _.forEach(relationships, function (rel, key) {
         const pivot = rel.pivot || 'id'
         const otherTable = rel.table
         const otherProto = tableCache[otherTable].row

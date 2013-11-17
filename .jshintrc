@@ -1,7 +1,7 @@
 {
   "esnext": true,
   "camelcase": true,
-  "curly": true,
+  "curly": false,
   "eqeqeq": false,
   "indent": 2,
   "latedef": "nofunc",

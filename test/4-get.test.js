@@ -11,7 +11,7 @@ test('table.get', function (t) {
       return this.first_name + ' ' + this.last_name
     }
 
-    user.get({last_name: 'Hannah'}, {debug: true}, function (err, row) {
+    user.get({last_name: 'Hannah'}, {sort: 'first_name', debug: true}, function (err, row) {
       t.notOk(err, 'no errors')
       t.same(row[0].fullname(), 'Barry Hannah')
       user.getOne({last_name: 'Hannah'}, function (err, row) {

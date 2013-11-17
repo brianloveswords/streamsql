@@ -1,1 +1,3 @@
 node_modules
+/birds.sql
+/test/bird-test.js
