@@ -282,6 +282,7 @@ tableProto.createWriteStream = function createWriteStream(opts) {
       return done()
   }
 
+  stream.readable = true
   stream.write = function write(row, callback) {
     waiting += 1
 
@@ -311,6 +312,8 @@ tableProto.createWriteStream = function createWriteStream(opts) {
   }
 
   stream.end = function end(row, callback) {
+    stream.readable = false
+
     if (typeof row == 'function') {
       callback = row
       row = null
