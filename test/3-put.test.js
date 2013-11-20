@@ -22,10 +22,13 @@ test('table.put', function (t) {
         first_name: 'Sean'
       }
 
-      user.put(updateRow, function (err, meta) {
-        t.notOk(err, 'should not have an error')
-        t.same(meta.affectedRows, 1, 'should have affected one row')
-        t.end()
+      user.put({first_name: 'Brian', last_name: 'Smith'}, function (err, meta) {
+        t.ok(err, 'should have an error')
+        user.put(updateRow, function (err, meta) {
+          t.notOk(err, 'should not have an error')
+          t.same(meta.affectedRows, 1, 'should have affected one row')
+          t.end()
+        })
       })
     })
   })

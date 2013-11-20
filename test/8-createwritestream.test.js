@@ -45,6 +45,20 @@ test('table.createWriteStream: simple', function (t) {
   })
 })
 
+test('table.createWriteStream: ignore errors', function (t) {
+  useDb(t, tables, function (db, done) {
+    const book = makeBookDb(db)
+    var ws = book.createWriteStream({ignoreDupes: true})
+
+    ws.on('error', function () { t.fail('should have have errored') })
+    ws.on('end', function () { t.end() })
+
+    ws.write({ title: 'CivilWarLand in Bad Decline'})
+    ws.end()
+
+  })
+})
+
 function makeBookDb(db) {
   return db.table('book', {
     fields: [ 'id', 'title', 'release_date' ],

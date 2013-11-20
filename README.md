@@ -251,13 +251,16 @@ Emits a `data` event for each row with just the primary key of that row.
 
 --------------------------------------------------------
 <a name='writeStream'></a>
-### table.createWriteStream()
+### table.createWriteStream(options)
 
 Creates a WriteStream to the table.
 
 The `write()` method on the stream takes row data. When a row is successfully written, a `meta` event is emitted and passed a `meta` object containing `row`, `sql` and `insertId`
 
 An internal buffer is not kept, so all calls to `write()`s will return `false` to signal a ReadStream to `pause()`. Once a row has been succesfully stored, a `drain` event will be emitted.
+
+
+If `options.ignoreDupes`, any duplicate key errors will be ignored instead of emitting an `error` event.
 
 #### Example
 

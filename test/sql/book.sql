@@ -3,7 +3,7 @@ CREATE TABLE `book` (
   `id` BIGINT AUTO_INCREMENT PRIMARY KEY,
   -- see `user-data.sql` for author ids
   `author_id` BIGINT NOT NULL,
-  `title` VARCHAR(255) NOT NULL,
+  `title` VARCHAR(255) NOT NULL UNIQUE,
   `release_date` VARCHAR(255) NOT NULL
 );
 

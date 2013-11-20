@@ -53,9 +53,9 @@ tableProto.put = function put(row, callback) {
   const meta = { row: row, sql: null, insertId: null }
   const query = conn.query(queryString, [row], function (err, result) {
     if (err) {
-      if (err.code == 'ER_DUP_ENTRY' && tryUpdate) {
+      const primaryKeyError = err.message.match(/for key .*?PRIMARY/)
+      if (err.code == 'ER_DUP_ENTRY' && tryUpdate && primaryKeyError)
         return this.update(row, callback)
-      }
       return callback(err)
     }
 
@@ -257,7 +257,10 @@ tableProto.createKeyStream = function createKeyStream(conditions, opts) {
   )
 }
 
-tableProto.createWriteStream = function createWriteStream() {
+tableProto.createWriteStream = function createWriteStream(opts) {
+  opts = opts || {}
+
+  const ignoreDupes = opts.ignoreDupes
   const conn = this.db.connection
   const table = this.table
   const stream = new WritableStream()
@@ -287,6 +290,8 @@ tableProto.createWriteStream = function createWriteStream() {
       drain()
 
       if (err) {
+        if (ignoreDupes) return
+
         if (callback) { callback(err) }
         return emit('error', err, meta)
       }
