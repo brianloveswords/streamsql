@@ -110,6 +110,7 @@ tableProto.get = function get(cnd, opts, callback) {
     fields: this.fields,
     conditions: cnd,
     limit: opts.limit,
+    page: opts.page,
     sort: opts.sort || opts.order ||opts.orderBy
   }, opts.single ? singleRow : manyRows)
 
@@ -175,6 +176,7 @@ tableProto.createReadStream = function createReadStream(conditions, opts) {
     conditions: conditions,
     relationships: relationships,
     limit: opts.limit,
+    page: opts.page,
     sort: opts.sort || opts.order || opts.orderBy
   })
 
