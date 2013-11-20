@@ -20,10 +20,14 @@ test('table.createWriteStream: simple', function (t) {
 
     rows.forEach(ws.write)
 
+    const emittedRows = []
+    ws.on('data', function (data) { emittedRows.push(data)})
+
     ws.end(function () {
       const where = { id: { op: '>=', value: 100 }}
       book.get(where, function (err, found) {
         t.same(rows, found, 'should have found all the inserted rows')
+        t.same(emittedRows, rows, 'should have remitted rows')
 
         const alteredRows = rows.map(function (row) {
           row = xtend({}, row)
@@ -33,6 +37,7 @@ test('table.createWriteStream: simple', function (t) {
 
         ws = book.createWriteStream()
         alteredRows.forEach(ws.write)
+
 
         ws.end(function () {
           book.get(where, function (err, found) {
@@ -48,14 +53,18 @@ test('table.createWriteStream: simple', function (t) {
 test('table.createWriteStream: ignore errors', function (t) {
   useDb(t, tables, function (db, done) {
     const book = makeBookDb(db)
+    const row = { title: 'CivilWarLand in Bad Decline'}
     var ws = book.createWriteStream({ignoreDupes: true})
 
+    var foundDupe = false
     ws.on('error', function () { t.fail('should have have errored') })
-    ws.on('end', function () { t.end() })
-
-    ws.write({ title: 'CivilWarLand in Bad Decline'})
+    ws.on('dupe', function (row) { foundDupe = row })
+    ws.on('end', function () {
+      t.same(foundDupe, row, 'should have found dupe')
+      t.end()
+    })
+    ws.write(row)
     ws.end()
-
   })
 })
 

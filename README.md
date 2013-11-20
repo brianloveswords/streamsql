@@ -260,7 +260,7 @@ The `write()` method on the stream takes row data. When a row is successfully wr
 An internal buffer is not kept, so all calls to `write()`s will return `false` to signal a ReadStream to `pause()`. Once a row has been succesfully stored, a `drain` event will be emitted.
 
 
-If `options.ignoreDupes`, any duplicate key errors will be ignored instead of emitting an `error` event.
+If `options.ignoreDupes`, any duplicate key errors will be ignored instead of emitting an `error` event. Ignored rows will be emitted as `dupe` events.
 
 #### Example
 

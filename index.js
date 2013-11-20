@@ -278,29 +278,33 @@ tableProto.createWriteStream = function createWriteStream(opts) {
   function drain() {
     waiting -= 1
     emit('drain')
-    if (ending && waiting <= 0) {
-      done()
-    }
+    if (ending && waiting <= 0)
+      return done()
   }
 
   stream.write = function write(row, callback) {
     waiting += 1
 
     put(row, function handleResult(err, meta) {
-      drain()
-
       if (err) {
-        if (ignoreDupes) return
+        if (ignoreDupes) {
+          emit('dupe', row)
+          return drain()
+        }
 
         if (callback) { callback(err) }
-        return emit('error', err, meta)
+        emit('error', err, meta)
+        return drain()
       }
 
       emit('meta', meta)
+      emit('data', row)
 
       if (callback && typeof callback == 'function') {
         callback(null, meta)
       }
+
+      return drain()
     })
 
     return false;
