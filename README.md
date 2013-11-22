@@ -119,7 +119,6 @@ albums.get({
 ```
 
 **Multiple conditions on a single column**:
-Mixed
 ```js
 albums.get({
   artist: 'David Bowie',
