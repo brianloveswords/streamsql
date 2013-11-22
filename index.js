@@ -9,7 +9,6 @@ const create = require('./lib/create')
 const fmt = util.format.bind(util)
 const escapeId = mysql.escapeId.bind(mysql)
 const escape = mysql.escape.bind(mysql)
-const WritableStream = Stream.Writable
 
 const dbProto = {}
 const tableProto = {}
@@ -263,7 +262,7 @@ tableProto.createWriteStream = function createWriteStream(opts) {
   const ignoreDupes = opts.ignoreDupes
   const conn = this.db.connection
   const table = this.table
-  const stream = new WritableStream()
+  const stream = new Stream()
   const emit = stream.emit.bind(stream)
 
   const put = this.put.bind(this)
@@ -283,6 +282,8 @@ tableProto.createWriteStream = function createWriteStream(opts) {
   }
 
   stream.readable = true
+  stream.writable = true
+
   stream.write = function write(row, callback) {
     waiting += 1
 
