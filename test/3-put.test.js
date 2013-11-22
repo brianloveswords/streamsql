@@ -14,7 +14,7 @@ test('table.put', function (t) {
 
     user.put(row, function (err, meta) {
       t.notOk(err, 'should not have any errors')
-      t.same(meta.insertId, 1, 'should have an insertId')
+      t.ok(meta.insertId, 'should have an insertId')
       t.same(row, meta.row, 'should have correct row')
 
       const updateRow = {

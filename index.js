@@ -126,9 +126,8 @@ tableProto.get = function get(cnd, opts, callback) {
     }))
   }
 
-  if (opts.debug) {
+  if (opts.debug)
     console.error(query.sql)
-  }
 }
 
 tableProto.getOne = function getOne(cnd, opts, callback) {
@@ -240,9 +239,8 @@ tableProto.createReadStream = function createReadStream(conditions, opts) {
     })
   }
 
-  if (opts.debug) {
+  if (opts.debug)
     console.error(query.sql)
-  }
 
   return stream
 }

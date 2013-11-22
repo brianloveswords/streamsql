@@ -2,10 +2,8 @@ const test = require('tap').test
 const useDb = require('./testdb')
 
 test('table.get', function (t) {
-  useDb(t, ['user', 'user-data'], function (db, done) {
-    const user = db.table('user', {
-      fields: ['first_name', 'last_name'],
-    })
+  useDb(t, ['user'], function (db, done) {
+    const user = makeUserTable(db)
 
     user.row.fullname = function fullname() {
       return this.first_name + ' ' + this.last_name
@@ -27,3 +25,31 @@ test('table.get', function (t) {
     })
   })
 })
+
+test('table.get', function (t) {
+  useDb(t, ['user'], function (db, done) {
+    const user = makeUserTable(db)
+    user.get({
+      born: [
+        { value: '1950', op: '>=' },
+        { value: '1970', op: '<=' },
+      ]
+    }, {
+      sort: 'born',
+      debug: true
+    }, function (err, rows) {
+      const expect = ['Saunders', 'Link']
+      const result = rows.map(value('last_name'))
+      t.same(result, expect, 'should have the right values')
+      t.end()
+    })
+  })
+})
+
+function value(name) { return function (obj) { return obj[name] } }
+
+function makeUserTable(db) {
+  return db.table('user', {
+    fields: ['first_name', 'last_name', 'born'],
+  })
+}

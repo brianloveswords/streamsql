@@ -2,7 +2,7 @@ const test = require('tap').test
 const useDb = require('./testdb')
 
 test('table.get', function (t) {
-  useDb(t, ['user', 'user-data'], function (db, done) {
+  useDb(t, ['user'], function (db, done) {
     const user = db.table('user', {
       fields: ['first_name', 'last_name'],
     })
