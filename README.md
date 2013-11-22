@@ -35,6 +35,15 @@ $ npm install stream-sql
 
 This is shorthand for [establishing a mysql connection](https://github.com/felixge/node-mysql#establishing-connections) and connecting to it. See the linked page for the connection options.
 
+```js
+const streamSql = require('stream-sql')
+const db = streamSql.connect({
+  user: process.env['DB_USER'],
+  password: process.env['DB_PASSWORD'],
+  database: 'music'
+})
+```
+
 Returns a `db` object
 
 --------------------------------------------------------
