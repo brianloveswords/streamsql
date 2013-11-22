@@ -3,6 +3,9 @@ const mysql = require('..')
 const fs = require('fs')
 const path = require('path')
 
+if (process.env['NODE_ENV'] == 'travis')
+  env.USER = 'travis'
+
 module.exports = testDb
 
 function testDb(t, sql, callback) {
