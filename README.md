@@ -317,6 +317,6 @@ ws.on('close', function () {
 
 ws.write({ name: 'Brian', instrument: 'bass', food: 'burritos' })
 ws.write({ name: 'Jeremy', instrument: 'drums', food: 'cheese' })
-ws.write({ name: 'Travis', instrument: 'bass', food: 'tofu' })
+ws.write({ name: 'Travis', instrument: 'tambourine', food: 'tofu' })
 ws.end()
 ```
