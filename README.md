@@ -1,6 +1,6 @@
 # stream-sql
 
-A streaming MySQL library heavily inspired by <a href="https://github.com/rvagg/levelup">"`levelup`</a>
+A streaming MySQL library heavily inspired by <a href="https://github.com/rvagg/levelup">`levelup`</a>
 
 ## API
 
