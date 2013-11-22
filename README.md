@@ -1,4 +1,4 @@
-# mysql-stream-db
+# stream-sql
 
 ## API
 
