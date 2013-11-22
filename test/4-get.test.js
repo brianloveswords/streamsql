@@ -26,7 +26,7 @@ test('table.get', function (t) {
   })
 })
 
-test('table.get', function (t) {
+test('table.get, complex where', function (t) {
   useDb(t, ['user'], function (db, done) {
     const user = makeUserTable(db)
     user.get({
@@ -40,6 +40,19 @@ test('table.get', function (t) {
     }, function (err, rows) {
       const expect = ['Saunders', 'Link']
       const result = rows.map(value('last_name'))
+      t.same(result, expect, 'should have the right values')
+      t.end()
+    })
+  })
+})
+
+test('table.get, complex where', function (t) {
+  useDb(t, ['user'], function (db, done) {
+    const user = makeUserTable(db)
+    const sql = 'select last_name AS `last` from $table where first_name = ? OR first_name = ?'
+    user.get([sql, ['George', 'Kelly']], function (err, rows) {
+      const expect = ['Saunders', 'Link']
+      const result = rows.map(value('last'))
       t.same(result, expect, 'should have the right values')
       t.end()
     })
