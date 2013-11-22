@@ -1,12 +1,13 @@
 # stream-sql
 
+A streaming MySQL library heavily inspired by <a href="https://github.com/rvagg/levelup">"`levelup`</a>
+
 ## API
 
 ### Base
 * <a href="#connect"><code>base.<b>connect()</b></code></a>
 
 ### DB
-* <a href="#registerTable"><code>db.<b>registerTable()</b></code></a>
 * <a href="#table"><code>db.<b>table()</b></code></a>
 
 ### Table
@@ -30,13 +31,13 @@ Returns a `db` object
 --------------------------------------------------------
 
 <a name='registerTable'></a>
-### db.registerTable(localName, options)
+### db.table(localName, definition)
 
 Registers a table against the internal table cache. Note, this **does not** create the table in the database (nor does it run any SQL at all).
 
 `localName` is the name the table will be registered under. You can use this later with `connection.table()` to get a handle for the table.
 
-#### <code>options</code>
+#### <code>definition</code>
 
 * `primaryKey`: the primary key for the table. Defaults to `id`
 * `tableName`: the name of the table in the actual database. Defaults to `localName`
@@ -44,7 +45,7 @@ Registers a table against the internal table cache. Note, this **does not** crea
 * `methods`: methods to add to a row object as it gets emitted from the database. `this` in the function context will be a reference to the row. Example:
 
 ```js
-db.registerTable('friendship', {
+db.table('friendship', {
   fields: [ 'id', 'screen_name', 'friend' ],
   methods: {
     hifive: function hifive() {
@@ -77,23 +78,21 @@ An insert will always be attempted first. If the insert fails with an `ER_DUP_EN
 --------------------------------------------------------
 <a name='get'></a>
 ### table.get(conditions, options, callback)
+### table.getOne(conditions, options, callback)
 
-Gets some a single row from the table.
+Gets some (or one) row from the table.
 
 <a name="conditions"></a>
 #### <code>conditions</code>
 
-`conditions` can be in one of two forms: simple or explicit
+`conditions` can be in any number of forms depending on how you're trying to select things
 
-Simple:
+Simple, uses `=` for comparison:
 ```js
-albums.get({
-  artist: 'Hookworms',
-  album: 'Teen Dream'
-}, function(err, rows){ ... })
+albums.get({ artist: 'Hookworms' }, function(err, rows){ ... })
 ```
 
-Explicit:
+**Explicit comparison operation**:
 ```js
 albums.get({
   artist: {
@@ -107,8 +106,18 @@ albums.get({
 }, function(err, rows){ ... })
 ```
 
-You can also mix and match the types and use arrays:
+**Implicit `in` comparison**:
+```js
+albums.get({
+  artist: [
+    'My Bloody Valentine',
+    'Slowdive',
+    'Ride'
+  ]
+}, function(err, rows){ ... })
+```
 
+**Multiple conditions on a single column**:
 Mixed
 ```js
 albums.get({
@@ -123,15 +132,26 @@ albums.get({
 }, function(err, rows){ ... })
 ```
 
-(NOTE: arrays not yet implemented)
+Currently all of the conditions are inclusive – the where statement is joined with `AND` – so the row must match all of the parameters to be included. However, there's a final option that lets you do whatever you want:
 
-Currently all of the conditions are inclusive – the where statement is joined with `AND` – so the row must match all of the parameters to be included.
+**Raw sql**
+Note, you can use `$table` as a placeholder for the current table so you don't have to hardcode it.
+```js
+albums.get([
+  'SELECT `release_date` AS `date` FROM $table WHERE `title` = ? AND `artist`= ?',
+  ['Siamese Dream', 'The Smashing Pumpkins']
+], function(err, rows){ ... })
+```
 
+<a name="get-options"></a>
 #### <code>options</code>
 
-* `sort`: TODO: implement
-* `limit`: TODO: implement
-* `page`: TODO: implement
+* `sort`: Can be one of three forms:
+  - Implicit ascending, single column: <code>{sort: 'artist'}</code>
+  - Implicit ascending, multiple rows: <code>{sort: ['artist', 'release_date']</code>
+  - Explicit: <code>{sort: { artist: 'desc', release_date: 'asc'}}</code>
+* `limit` and `page`: How many rows and which page of results to get. Example: `{limit: 25, page: 3}`
+* `debug`: When set to true, the generated SQL statement will be printed to `stderr`.
 
 --------------------------------------------------------
 <a name='del'></a>
@@ -158,6 +178,7 @@ garbage.del({}, function(err){
 Create a ReadStream for the table.
 
 * `conditions`: <a href="#conditions">see above</a>
+* `options`: <a href="#get-options">see above</a>
 
 #### <code>pause()</code> and <code>resume()</code>
 
@@ -171,6 +192,8 @@ Create a ReadStream for the table.
 
 #### <code>options.relationships</code>
 
+<strong>NOTE: This is still experimental. `hasOne` relationships are working great, but you can only have one `hasMany` relationship at the moment.</strong>
+
 You can define relationships on the data coming out of the stream. This will translate to `JOIN`s at the SQL layer, so you can (potentially) see some performance gains versus populating manually.
 
 `options.relationships` is an object, keyed by property. The property name will be used when attaching the foreign rows to the main row. This will also be used as the source of the foreign key relationship unless a `from` property is defined.
@@ -180,7 +203,7 @@ You can define relationships on the data coming out of the stream. This will tra
 * `foreign`: The foreign column to match against.
 * `from`: If the key name doesn't correspond to a local column, `from` should be used to specify it. Optional
 * `optional`: Whether or not the relationship is optional (INNER vs LEFT join). Defaults to `false`.
-* `pivot`: This is necessary as a hint to help properly aggregate "hasMany" relationships. Foreign rows will be stored as an array on the current main row until `pivot` column on the main row changes. At that point the foreign rows will start aggregating against the new main row.
+* `pivot`: This is sometimes necessary as a hint to help properly aggregate "hasMany" relationships. Foreign rows will be stored as an array on the current main row until `pivot` column on the main row changes. At that point the foreign rows will start aggregating against the new main row.
 
 ##### Example
 
