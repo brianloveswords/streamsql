@@ -78,11 +78,10 @@ test('table.createReadStream: hasOne relationships', function (t) {
       },
     }).pipe(concat(function(rows){
       console.dir(rows)
-
-      // t.ok(rows.length > 1, 'should have more than one row')
-      // t.same(rows[0].authorFullName(), 'George Saunders')
-      // t.same(rows[0].sameAuthor.fullName(), 'George Saunders')
-      // t.same(rows[0].profile.bio, 'Used to be a geophysical engineer')
+      t.ok(rows.length > 1, 'should have more than one row')
+      t.same(rows[0].authorFullName(), 'George Saunders')
+      t.same(rows[0].sameAuthor.fullName(), 'George Saunders')
+      t.same(rows[0].profile.bio, 'Used to be a geophysical engineer')
       t.end()
     }))
 
