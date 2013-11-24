@@ -132,7 +132,12 @@ function makeStoryDb(db) {
 }
 function makeReviewDb(db) {
   return db.table('review', {
-    fields: ['id', 'book_id', 'link']
+    fields: ['id', 'book_id', 'link'],
+    methods: {
+      linkify: function () {
+        return '<a href="'+this.link+'">review</a>'
+      }
+    }
   })
 }
 function makeBookDb(db) {
