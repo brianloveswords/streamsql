@@ -343,12 +343,12 @@ tableProto.createWriteStream = function createWriteStream(opts) {
 
 module.exports = {
   connect: function connect(options, callback) {
-    const driver = options.driver || 'mysql'
-    const conn = Drivers[driver].connect(options, callback)
+    const driver = Drivers[options.driver || 'mysql']
+    const connection = driver.connect(options, callback)
     return create(dbProto, {
+      connection: connection,
+      query: driver.getQueryFn(connection),
       tables: {},
-      connection: conn,
-      query: conn.query.bind(conn)
     })
   }
 }
