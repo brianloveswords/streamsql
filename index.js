@@ -148,13 +148,19 @@ tableProto.del = function del(cnd, opts, callback) {
     opts = null
   }
   opts = opts || {}
-  const conn = this.db.connection
+  const query = this.db.query
+  const driver = this.db.driver
   const table = this.table
-  const queryString =
-    sql.deleteStatement(table) +
-    sql.whereStatement(cnd, table) +
-    sql.limitStatement(opts)
-  return conn.query(queryString, callback)
+  const deleteSql = driver.deleteSql({
+    table: table,
+    conditions: cnd,
+    limit: opts.limit
+  })
+
+  if (opts.debug)
+    console.error(deleteSql)
+
+  return query(deleteSql, callback)
 }
 
 tableProto.createReadStream = function createReadStream(conditions, opts) {
