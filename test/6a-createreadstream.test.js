@@ -27,66 +27,67 @@ test('table.createReadStream: basic', function (t) {
   })
 })
 
-// test('table.createReadStream: limits and pages', function (t) {
-//   useDb(t, tables, function (db, done) {
-//     const book = makeBookDb(db)
+test('table.createReadStream: limits and pages', function (t) {
+  sqliteLoad(db, tables, function () {
+    const book = makeBookDb(db)
 
-//     book.createReadStream({}, {
-//       limit: 1,
-//       page: 2,
-//       debug: true,
-//     }).pipe(concat(function (data) {
-//       t.same(data.length, 1)
-//       t.same(data[0].title, 'Pastoralia')
-//       t.end()
-//     }))
-//   })
-// })
+    book.createReadStream({}, {
+      limit: 1,
+      page: 2,
+      debug: true,
+    }).pipe(concat(function (data) {
+      t.same(data.length, 1)
+      t.same(data[0].title, 'Pastoralia')
+      t.end()
+    }))
+  })
+})
 
-// test('table.createReadStream: hasOne relationships', function (t) {
-//   useDb(t, tables, function (db, done) {
-//     const author = makeUserDb(db)
-//     const book = makeBookDb(db)
-//     const profile = makeProfileDb(db)
+test('table.createReadStream: hasOne relationships', function (t) {
+  sqliteLoad(db, tables, function () {
+    const author = makeUserDb(db)
+    const book = makeBookDb(db)
+    const profile = makeProfileDb(db)
 
-//     book.createReadStream({}, {
-//       debug: true,
-//       // include: ['bio', 'first_name', 'last_name'],
-//       exclude: ['release_date', 'title'],
-//       relationships: {
-//         author: {
-//           type: 'hasOne',
-//           local: 'author_id',
-//           foreign: { table: 'user', key: 'id' },
-//         },
-//         sameAuthor: {
-//           type: 'hasOne',
-//           local: { table: 'book', key: 'author_id'},
-//           foreign: {
-//             table: 'user', as: 'yasah',
-//             key: 'id',
-//           }
-//         },
-//         profile: {
-//           optional: true,
-//           type: 'hasOne',
-//           local: { table: 'yasah', key: 'id'},
-//           foreign: {
-//             table: 'profile', as: 'whatevar',
-//             key: 'author_id',
-//           },
-//         },
-//       },
-//     }).pipe(concat(function(rows){
-//       t.ok(rows.length > 1, 'should have more than one row')
-//       t.same(rows[0].authorFullName(), 'George Saunders')
-//       t.same(rows[0].sameAuthor.fullName(), 'George Saunders')
-//       t.same(rows[0].profile.bio, 'Used to be a geophysical engineer')
-//       t.end()
-//     }))
+    book.createReadStream({}, {
+      debug: true,
+      // include: ['bio', 'first_name', 'last_name'],
+      relationships: {
+        author: {
+          type: 'hasOne',
+          local: 'author_id',
+          foreign: { table: 'user', key: 'id' },
+        },
+        sameAuthor: {
+          type: 'hasOne',
+          local: { table: 'book', key: 'author_id'},
+          foreign: {
+            table: 'user', as: 'yasah',
+            key: 'id',
+          }
+        },
+        profile: {
+          optional: true,
+          type: 'hasOne',
+          local: { table: 'yasah', key: 'id'},
+          foreign: {
+            table: 'profile', as: 'whatevar',
+            key: 'author_id',
+          },
+        },
+      },
+    }).pipe(concat(function(rows){
+      console.dir(rows)
 
-//   })
-// })
+      // t.ok(rows.length > 1, 'should have more than one row')
+      // t.same(rows[0].authorFullName(), 'George Saunders')
+      // t.same(rows[0].sameAuthor.fullName(), 'George Saunders')
+      // t.same(rows[0].profile.bio, 'Used to be a geophysical engineer')
+      t.end()
+    }))
+
+  })
+})
 
 
 // // test('table.createReadStream: hasMany relationships', function (t) {
@@ -111,21 +112,34 @@ test('table.createReadStream: basic', function (t) {
 
 
 
-// function makeProfileDb(db) {
-//   return db.table('profile', {
-//     fields: [ 'id', 'author_id', 'bio' ],
-//   })
-// }
-// function makeUserDb(db) {
-//   return db.table('user', {
-//     fields: [ 'id', 'first_name', 'last_name' ],
-//     methods: {
-//       fullName: function authorFullName() {
-//         return [this.first_name, this.last_name].join(' ')
-//       }
-//     },
-//   })
-// }
+function makeProfileDb(db) {
+  return db.table('profile', {
+    fields: [ 'id', 'author_id', 'bio' ],
+  })
+}
+function makeUserDb(db) {
+  return db.table('user', {
+    fields: [ 'id', 'first_name', 'last_name' ],
+    methods: {
+      fullName: function authorFullName() {
+        return [this.first_name, this.last_name].join(' ')
+      }
+    },
+  })
+}
+
+function makeBookDb(db) {
+  return db.table('book', {
+    fields: [ 'id', 'author_id', 'title', 'release_date' ],
+    methods: {
+      authorFullName: function authorFullName() {
+        const author = this.author
+        return [author.first_name, author.last_name].join(' ')
+      }
+    },
+  })
+}
+
 // function makeStoryDb(db) {
 //   return db.table('story', {
 //     fields: [ 'id', 'book_id', 'title', ],
@@ -141,15 +155,3 @@ test('table.createReadStream: basic', function (t) {
 //     fields: ['id', 'book_id', 'link']
 //   })
 // }
-
-function makeBookDb(db) {
-  return db.table('book', {
-    fields: [ 'id', 'author_id', 'title', 'release_date' ],
-    methods: {
-      authorFullName: function authorFullName() {
-        const author = this.author
-        return [author.first_name, author.last_name].join(' ')
-      }
-    },
-  })
-}
