@@ -43,6 +43,7 @@ test('table.createReadStream: hasOne relationships', function (t) {
     const book = makeBookDb(db)
 
     book.createReadStream({}, {
+      debug: true,
       relationships: {
         author: {
           type: 'hasOne',
@@ -50,11 +51,17 @@ test('table.createReadStream: hasOne relationships', function (t) {
           from: 'author_id',
           foreign: 'id',
         },
+        sameAuthor: {
+          type: 'hasOne',
+          table: {name: 'user', as: 'yasah'},
+          from: 'author_id',
+          foreign: 'id',
+        },
       },
-      debug: true,
     }).pipe(concat(function(rows){
       console.dir(rows)
       t.same(rows[0].authorFullName(), 'George Saunders')
+      t.same(rows[0].sameAuthor.last_name, 'Saunders')
       t.end()
     }))
 
