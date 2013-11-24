@@ -61,7 +61,7 @@ test('table.createReadStream: hasOne relationships', function (t) {
     }).pipe(concat(function(rows){
       console.dir(rows)
       t.same(rows[0].authorFullName(), 'George Saunders')
-      t.same(rows[0].sameAuthor.last_name, 'Saunders')
+      t.same(rows[0].sameAuthor.fullName(), 'George Saunders')
       t.end()
     }))
 
