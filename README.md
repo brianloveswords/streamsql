@@ -1,4 +1,4 @@
-# streamsql [![Build Status](https://secure.travis-ci.org/brianloveswords/stream-sql.png?branch=master)](http://travis-ci.org/brianloveswords/stream-sql)
+# streamsql [![Build Status](https://secure.travis-ci.org/brianloveswords/streamsql.png?branch=master)](http://travis-ci.org/brianloveswords/streamsql)
 
 
 A streaming MySQL library heavily inspired by <a href="https://github.com/rvagg/levelup">`levelup`</a>
@@ -7,7 +7,7 @@ A streaming MySQL library heavily inspired by <a href="https://github.com/rvagg/
 ## Install
 
 ```bash
-$ npm install stream-sql
+$ npm install streamsql
 ```
 
 
