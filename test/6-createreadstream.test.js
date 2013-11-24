@@ -47,15 +47,16 @@ test('table.createReadStream: hasOne relationships', function (t) {
       relationships: {
         author: {
           type: 'hasOne',
-          table: 'user',
-          from: 'author_id',
-          foreign: 'id',
+          local: 'author_id',
+          foreign: { table: 'user', key: 'id' },
         },
         sameAuthor: {
           type: 'hasOne',
-          table: {name: 'user', as: 'yasah'},
-          from: 'author_id',
-          foreign: 'id',
+          local: { table: 'book', key: 'author_id'},
+          foreign: {
+            table: 'user', as: 'yasah',
+            key: 'id',
+          }
         },
       },
     }).pipe(concat(function(rows){
