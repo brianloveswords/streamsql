@@ -41,6 +41,7 @@ test('table.createReadStream: hasOne relationships', function (t) {
   useDb(t, tables, function (db, done) {
     const author = makeUserDb(db)
     const book = makeBookDb(db)
+    const profile = makeProfileDb(db)
 
     book.createReadStream({}, {
       debug: true,
@@ -58,11 +59,21 @@ test('table.createReadStream: hasOne relationships', function (t) {
             key: 'id',
           }
         },
+        profile: {
+          optional: true,
+          type: 'hasOne',
+          local: { table: 'yasah', key: 'id'},
+          foreign: {
+            table: 'profile', as: 'whatevar',
+            key: 'author_id',
+          },
+        },
       },
     }).pipe(concat(function(rows){
-      console.dir(rows)
+      t.ok(rows.length > 1, 'should have more than one row')
       t.same(rows[0].authorFullName(), 'George Saunders')
       t.same(rows[0].sameAuthor.fullName(), 'George Saunders')
+      t.same(rows[0].profile.bio, 'Used to be a geophysical engineer')
       t.end()
     }))
 
@@ -92,6 +103,11 @@ test('table.createReadStream: hasOne relationships', function (t) {
 
 
 
+function makeProfileDb(db) {
+  return db.table('profile', {
+    fields: [ 'id', 'author_id', 'bio' ],
+  })
+}
 function makeUserDb(db) {
   return db.table('user', {
     fields: [ 'id', 'first_name', 'last_name' ],
