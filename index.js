@@ -1,3 +1,4 @@
+const Drivers = require('./lib/drivers')
 const mysql = require('mysql')
 const Stream = require('stream')
 const util = require('util')
@@ -7,6 +8,7 @@ const extend = require('xtend')
 const _ = require('lodash')
 const create = require('./lib/create')
 const fmt = util.format.bind(util)
+
 const escapeId = mysql.escapeId.bind(mysql)
 const escape = mysql.escape.bind(mysql)
 
@@ -341,8 +343,8 @@ tableProto.createWriteStream = function createWriteStream(opts) {
 
 module.exports = {
   connect: function connect(options, callback) {
-    const conn = mysql.createConnection(options)
-    conn.connect(callback)
+    const driver = options.driver || 'mysql'
+    const conn = Drivers[driver].connect(options, callback)
     return create(dbProto, {
       tables: {},
       connection: conn,
