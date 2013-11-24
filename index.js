@@ -16,7 +16,8 @@ const dbProto = {}
 const tableProto = {}
 
 dbProto.close = function close(callback) {
-  return this.connection.end(callback)
+  console.dir(this.driver.close)
+  return this.driver.close(this.connection, callback)
 }
 
 dbProto.table = function table(name, spec) {
