@@ -102,18 +102,20 @@ tableProto.get = function get(cnd, opts, callback) {
     opts = {}
   }
 
-  const conn = this.db.connection
   const rowProto = this.row
-  const query = sql.selectQuery({
-    tableCache: this.db.tables,
-    query: conn.query.bind(conn),
+  const driver = this.db.driver
+
+  const selectSql = driver.selectSql({
+    db: this.db,
     table: this.table,
     fields: this.fields,
     conditions: cnd,
     limit: opts.limit,
     page: opts.page,
-    sort: opts.sort || opts.order ||opts.orderBy
-  }, opts.single ? singleRow : manyRows)
+    order: opts.sort || opts.order ||opts.orderBy
+  })
+
+  this.db.query(selectSql, opts.single ? singleRow : manyRows)
 
   function singleRow(err, rows) {
     if (err || !rows.length) { return callback(err) }
@@ -128,7 +130,7 @@ tableProto.get = function get(cnd, opts, callback) {
   }
 
   if (opts.debug)
-    console.error(query.sql)
+    console.error(selectSql)
 }
 
 tableProto.getOne = function getOne(cnd, opts, callback) {
