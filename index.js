@@ -166,7 +166,10 @@ tableProto.del = function del(cnd, opts, callback) {
 tableProto.createReadStream = function createReadStream(conditions, opts) {
   opts = opts || {}
   const conn = this.db.connection
+  const driver = this.db.driver
   const fields = this.fields
+  const table = this.table
+
   var relationships = opts.relationships || {}
 
   if (typeof relationships == 'boolean' &&
@@ -174,84 +177,29 @@ tableProto.createReadStream = function createReadStream(conditions, opts) {
     relationships = this.relationships
   }
 
-  const table = this.table
-
-  const query = sql.selectQuery({
-    query: conn.query.bind(conn),
+  const selectSql = driver.selectSql({
+    db: this.db,
     table: table,
-    tableCache: this.db.tables,
-    fields: fields || this.fields,
+    fields: fields,
     conditions: conditions,
-    relationships: relationships,
     limit: opts.limit,
     page: opts.page,
-    sort: opts.sort || opts.order || opts.orderBy
+    relationships: relationships,
+    order: opts.sort || opts.order || opts.orderBy,
   })
 
-  const rowProto = this.row
   const tableCache = this.db.tables
 
-  const stream = new Stream()
-  stream.pause = conn.pause.bind(conn)
-  stream.resume = conn.resume.bind(conn)
-  query.on('error', stream.emit.bind(stream, 'error'))
-  if (!relationships) {
-    query.on('result', function onResult(row) {
-      stream.emit('data', create(rowProto, row))
-    })
-    query.on('end', stream.emit.bind(stream, 'end'))
-  } else {
-    var processing
-
-    query.on('result', function onResult(row) {
-      const current = row[table]
-      var hold = false;
-      _.forEach(relationships, function (rel, key) {
-        const pivot = rel.pivot || 'id'
-        const otherTable = rel.table
-        const otherProto = tableCache[otherTable].row
-
-        if (rel.type == 'hasOne') {
-          current[rel.as || key] = create(otherProto, row[otherTable])
-        }
-
-        else if (rel.type == 'hasMany') {
-          hold = true
-
-          if (!processing) {
-            processing = current
-            processing[key] = []
-          }
-
-          // when the pivot changes, we want to emit that row and
-          // change the `processing` pointer to the current row
-          if (current[pivot] != processing[pivot]) {
-            stream.emit('data', create(rowProto, processing))
-            processing = current
-            processing[key] = []
-          }
-
-          processing[key].push(create(otherProto, row[otherTable]))
-        }
-      })
-
-      if (!hold) {
-        stream.emit('data', create(rowProto, current))
-      }
-    })
-
-    query.on('end', function () {
-      if (processing) {
-        stream.emit('data', processing)
-      }
-      stream.emit('end')
-    })
-  }
+  const queryStream = this.db.queryStream(selectSql, {
+    rowPrototype: this.row,
+    relationships: relationships,
+    table: table,
+  })
 
   if (opts.debug)
-    console.error(query.sql)
+    console.error(selectSql)
 
-  return stream
+  return queryStream
 }
 
 tableProto.createKeyStream = function createKeyStream(conditions, opts) {
@@ -356,6 +304,7 @@ module.exports = {
     return create(dbProto, {
       connection: connection,
       query: driver.getQueryFn(connection),
+      queryStream: driver.getStreamFn(connection),
       tables: {},
       driver: driver,
     })
