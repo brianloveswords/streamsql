@@ -106,11 +106,13 @@ tableProto.get = function get(cnd, opts, callback) {
   const selectSql = driver.selectSql({
     db: this.db,
     table: this.table,
+    tables: this.db.tables,
+    relationships: opts.relationships,
     fields: this.fields,
     conditions: cnd,
     limit: opts.limit,
     page: opts.page,
-    order: opts.sort || opts.order ||opts.orderBy
+    order: opts.sort || opts.order ||opts.orderBy,
   })
 
   this.db.query(selectSql, opts.single ? singleRow : manyRows)
@@ -180,6 +182,7 @@ tableProto.createReadStream = function createReadStream(conditions, opts) {
   const selectSql = driver.selectSql({
     db: this.db,
     table: table,
+    tables: this.db.tables,
     fields: fields,
     conditions: conditions,
     limit: opts.limit,
@@ -194,6 +197,7 @@ tableProto.createReadStream = function createReadStream(conditions, opts) {
     rowPrototype: this.row,
     relationships: relationships,
     table: table,
+    tables: this.db.tableCache
   })
 
   if (opts.debug)

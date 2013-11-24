@@ -21,6 +21,47 @@ test('table.createReadStream: basic', function (t) {
   })
 })
 
+test('table.createReadStream: limits and pages', function (t) {
+  useDb(t, tables, function (db, done) {
+    const book = makeBookDb(db)
+
+    book.createReadStream({}, {
+      limit: 1,
+      page: 2,
+      debug: true,
+    }).pipe(concat(function (data) {
+      t.same(data.length, 1)
+      t.same(data[0].title, 'Pastoralia')
+      t.end()
+    }))
+  })
+})
+
+test('table.createReadStream: hasOne relationships', function (t) {
+  useDb(t, tables, function (db, done) {
+    const author = makeUserDb(db)
+    const book = makeBookDb(db)
+
+    book.createReadStream({}, {
+      relationships: {
+        author: {
+          type: 'hasOne',
+          table: 'user',
+          from: 'author_id',
+          foreign: 'id',
+        },
+      },
+      debug: true,
+    }).pipe(concat(function(rows){
+      console.dir(rows)
+      t.same(rows[0].authorFullName(), 'George Saunders')
+      t.end()
+    }))
+
+  })
+})
+
+
 // test('table.createReadStream: relationships', function (t) {
 //   useDb(t, tables, function (db, done) {
 //     const user = makeUserDb(db)
@@ -41,31 +82,11 @@ test('table.createReadStream: basic', function (t) {
 //   })
 // })
 
-// test('table.createReadStream: limits and pages', function (t) {
-//   useDb(t, tables, function (db, done) {
-//     const book = makeBookDb(db)
-
-//     book.createReadStream({}, {
-//       limit: 1,
-//       page: 2,
-//       debug: true,
-//     })
-//       .pipe(concat(function (data) {
-//         t.same(data.length, 1)
-//         t.same(data[0].title, 'Pastoralia')
-//         t.end()
-//       }))
-//   })
-// })
 
 
 function makeUserDb(db) {
   return db.table('user', {
-    fields: [
-      'id',
-      'first_name',
-      'last_name'
-    ],
+    fields: [ 'id', 'first_name', 'last_name' ],
     methods: {
       fullName: function authorFullName() {
         return [this.first_name, this.last_name].join(' ')
@@ -75,11 +96,7 @@ function makeUserDb(db) {
 }
 function makeStoryDb(db) {
   return db.table('story', {
-    fields: [
-      'id',
-      'book_id',
-      'title',
-    ],
+    fields: [ 'id', 'book_id', 'title', ],
     methods: {
       reverse: function reverse() {
         return this.title.split('').reverse().join('')
@@ -94,12 +111,7 @@ function makeReviewDb(db) {
 }
 function makeBookDb(db) {
   return db.table('book', {
-    fields: [
-      'id',
-      'author_id',
-      'title',
-      'release_date'
-    ],
+    fields: [ 'id', 'author_id', 'title', 'release_date' ],
     relationships: {
       author: {
         type: 'hasOne',
@@ -107,13 +119,14 @@ function makeBookDb(db) {
         from: 'author_id',
         foreign: 'id',
       },
-      stories: {
-        type: 'hasMany',
-        table: 'story',
-        from: 'id',
-        foreign: 'book_id',
-        optional: true,
-      },
+
+      // stories: {
+      //   type: 'hasMany',
+      //   table: 'story',
+      //   from: 'id',
+      //   foreign: 'book_id',
+      //   optional: true,
+      // },
 
       /* multiple hasMany relationships are broken right now – might
          need a different strategy */
