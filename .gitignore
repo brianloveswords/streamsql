@@ -2,3 +2,5 @@ node_modules
 /birds.sql
 /test/bird-test.js
 /test/sqlite.db
+/whatever.db
+/test/whatever.db
