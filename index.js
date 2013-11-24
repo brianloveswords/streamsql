@@ -49,12 +49,10 @@ tableProto.put = function put(row, callback) {
   const table = this.table
   const primaryKey = this.primaryKey
   const driver = this.db.driver
-
-  const queryString = driver.insertSql(table, row)
-
+  const insertSql = driver.insertSql(table, row)
   const tryUpdate = primaryKey in row
   const meta = { row: row, sql: null, insertId: null }
-  const query = conn.query(queryString, [row], function (err, result) {
+  const query = conn.query(insertSql, function (err, result) {
     if (err) {
       const primaryKeyError = err.message.match(/for key .*?PRIMARY/)
       if (err.code == 'ER_DUP_ENTRY' && tryUpdate && primaryKeyError)
@@ -73,13 +71,9 @@ tableProto.update = function update(row, callback) {
   const conn = this.db.connection
   const table = this.table
   const primaryKey = this.primaryKey
-
-  const queryString = fmt('UPDATE %s SET ? WHERE %s = %s LIMIT 1',
-                          escapeId(table),
-                          escapeId(primaryKey),
-                          escape(row[primaryKey]))
-
-  const query = conn.query(queryString, [row], handleResult.bind(this))
+  const driver = this.db.driver
+  const updateSql = driver.updateSql(table, row, primaryKey)
+  const query = conn.query(updateSql, handleResult.bind(this))
   const meta = {
     row: row,
     sql: query.sql,
