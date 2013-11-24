@@ -48,8 +48,10 @@ tableProto.put = function put(row, callback) {
   const conn = this.db.connection
   const table = this.table
   const primaryKey = this.primaryKey
+  const driver = this.db.driver
 
-  const queryString = fmt('INSERT INTO %s SET ?', escapeId(table))
+  const queryString = driver.insertSql(table, row)
+
   const tryUpdate = primaryKey in row
   const meta = { row: row, sql: null, insertId: null }
   const query = conn.query(queryString, [row], function (err, result) {
@@ -349,6 +351,7 @@ module.exports = {
       connection: connection,
       query: driver.getQueryFn(connection),
       tables: {},
+      driver: driver,
     })
   }
 }
