@@ -1,4 +1,4 @@
-# stream-sql [![Build Status](https://secure.travis-ci.org/brianloveswords/stream-sql.png?branch=master)](http://travis-ci.org/brianloveswords/stream-sql)
+# streamsql [![Build Status](https://secure.travis-ci.org/brianloveswords/stream-sql.png?branch=master)](http://travis-ci.org/brianloveswords/stream-sql)
 
 
 A streaming MySQL library heavily inspired by <a href="https://github.com/rvagg/levelup">`levelup`</a>

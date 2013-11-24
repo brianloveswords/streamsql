@@ -1,7 +1,7 @@
 {
-  "name": "stream-sql",
+  "name": "streamsql",
   "version": "0.3.0",
-  "description": "Streaming MySQL ORM",
+  "description": "Streaming SQL ORM",
   "main": "index.js",
   "directories": {
     "test": "test"
@@ -24,7 +24,7 @@
   },
   "repository": {
     "type": "git",
-    "url": "git://github.com/brianloveswords/stream-sql.git"
+    "url": "git://github.com/brianloveswords/streamsql.git"
   },
   "keywords": [
     "streams",
@@ -34,6 +34,6 @@
   "author": "Brian J Brennan",
   "license": "MIT",
   "bugs": {
-    "url": "https://github.com/brianloveswords/mysql-stream-db/issues"
+    "url": "https://github.com/brianloveswords/streamsql/issues"
   }
 }
