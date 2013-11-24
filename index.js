@@ -83,8 +83,6 @@ tableProto.update = function update(row, callback) {
 
   function handleResult(err, result) {
     if (err) { return callback(err) }
-    console.dir(result)
-
     meta.affectedRows = result.affectedRows
     return callback(null, meta)
   }
@@ -118,12 +116,14 @@ tableProto.get = function get(cnd, opts, callback) {
   this.db.query(selectSql, opts.single ? singleRow : manyRows)
 
   function singleRow(err, rows) {
-    if (err || !rows.length) { return callback(err) }
+    if (err) return callback(err)
+    if (!rows.length) return
     return callback(null, create(rowProto, rows[0]))
   }
 
   function manyRows(err, rows) {
-    if (err) { return callback(err) }
+    if (err) return callback(err)
+
     return callback(null, rows.map(function (row) {
       return create(rowProto, row)
     }))
