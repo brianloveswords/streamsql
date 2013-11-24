@@ -45,6 +45,8 @@ test('table.createReadStream: hasOne relationships', function (t) {
 
     book.createReadStream({}, {
       debug: true,
+      // include: ['bio', 'first_name', 'last_name'],
+      exclude: ['release_date', 'title'],
       relationships: {
         author: {
           type: 'hasOne',

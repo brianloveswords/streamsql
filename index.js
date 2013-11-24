@@ -111,6 +111,8 @@ tableProto.get = function get(cnd, opts, callback) {
     fields: this.fields,
     conditions: cnd,
     limit: opts.limit,
+    include: opts.include,
+    exclude: opts.exclude,
     page: opts.page,
     order: opts.sort || opts.order ||opts.orderBy,
   })
@@ -188,6 +190,8 @@ tableProto.createReadStream = function createReadStream(conditions, opts) {
     limit: opts.limit,
     page: opts.page,
     relationships: relationships,
+    include: opts.include,
+    exclude: opts.exclude,
     order: opts.sort || opts.order || opts.orderBy,
   })
 
