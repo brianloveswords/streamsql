@@ -83,7 +83,7 @@ test('table.createReadStream: hasOne relationships', function (t) {
 })
 
 
-// test('table.createReadStream: relationships', function (t) {
+// test('table.createReadStream: hasMany relationships', function (t) {
 //   useDb(t, tables, function (db, done) {
 //     const user = makeUserDb(db)
 //     const book = makeBookDb(db)

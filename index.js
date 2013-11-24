@@ -19,25 +19,23 @@ dbProto.close = function close(callback) {
   return this.driver.close(this.connection, callback)
 }
 
-dbProto.table = function table(name, spec) {
-  var tableDef
-  if (spec) {
+dbProto.table = function table(name, definition) {
+  if (definition)
     return this.registerTable.apply(this, arguments)
-  }
-  tableDef = this.tables[name]
-  if (!tableDef) {
-    throw new Error('No table registered with the name `'+name+'`')
-  }
-  return tableDef
+
+  const tableDefinition = this.tables[name]
+  if (!tableDefinition)
+    throw new Error(fmt('No table registered with the name `%s`', name))
+  return tableDefinition
 }
 
-dbProto.registerTable = function registerTable(name, spec) {
+dbProto.registerTable = function registerTable(name, def) {
   const table = create(tableProto, {
-    table: spec.tableName || name,
-    primaryKey: spec.primaryKey || 'id',
-    fields: spec.fields || [],
-    row: spec.methods || {},
-    relationships: spec.relationships || {},
+    table: def.tableName || name,
+    primaryKey: def.primaryKey || 'id',
+    fields: def.fields || [],
+    row: def.methods || {},
+    relationships: def.relationships || {},
     db: this,
   })
   this.tables[name] = table
