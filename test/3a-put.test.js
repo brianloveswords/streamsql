@@ -1,8 +1,18 @@
 const test = require('tap').test
-const useDb = require('./testdb')
+const base = require('..')
+const sqliteLoad = require('./sqlite-load')
 
-test('table.put', function (t) {
-  useDb(t, ['user'], function (db, done) {
+const db = base.connect({
+  driver: 'sqlite',
+  database: 'whatever.db',
+})
+
+const user = db.table('user', [
+ 'id', 'first_name', 'last_name', 'born'
+])
+
+test('sql loading', function (t) {
+  sqliteLoad(db, ['user-sqlite'], function () {
     const user = db.table('user', {
       fields: ['id', 'first_name', 'last_name']
     })
@@ -25,7 +35,7 @@ test('table.put', function (t) {
       user.put({first_name: 'Brian', last_name: 'Smith'}, function (err, meta) {
         t.ok(err, 'should have an error')
         user.put(updateRow, function (err, meta) {
-
+          console.dir(err)
           t.notOk(err, 'should not have an error')
           t.same(meta.affectedRows, 1, 'should have affected one row')
           t.end()

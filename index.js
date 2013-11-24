@@ -16,7 +16,6 @@ const dbProto = {}
 const tableProto = {}
 
 dbProto.close = function close(callback) {
-  console.dir(this.driver.close)
   return this.driver.close(this.connection, callback)
 }
 
@@ -46,22 +45,24 @@ dbProto.registerTable = function registerTable(name, spec) {
 }
 
 tableProto.put = function put(row, callback) {
-  const conn = this.db.connection
   const table = this.table
   const primaryKey = this.primaryKey
   const driver = this.db.driver
   const insertSql = driver.insertSql(table, row)
   const tryUpdate = primaryKey in row
   const meta = { row: row, sql: null, insertId: null }
-  const query = conn.query(insertSql, function (err, result) {
+  const query = this.db.query(insertSql, function (err, result) {
     if (err) {
+      const code = err.code
+      const message = err.message
       const primaryKeyError = err.message.match(/for key .*?PRIMARY/)
-      if (err.code == 'ER_DUP_ENTRY' && tryUpdate && primaryKeyError)
+      if (((code == 'ER_DUP_ENTRY' && primaryKeyError) ||
+          message.match('PRIMARY KEY must be unique')) && tryUpdate)
         return this.update(row, callback)
       return callback(err)
     }
 
-    meta.sql = query.sql
+    meta.sql = insertSql
     meta.insertId = result.insertId
 
     return callback(null, meta)
@@ -69,19 +70,21 @@ tableProto.put = function put(row, callback) {
 }
 
 tableProto.update = function update(row, callback) {
-  const conn = this.db.connection
   const table = this.table
   const primaryKey = this.primaryKey
   const driver = this.db.driver
   const updateSql = driver.updateSql(table, row, primaryKey)
-  const query = conn.query(updateSql, handleResult.bind(this))
+  const query = this.db.query(updateSql, handleResult.bind(this))
   const meta = {
     row: row,
-    sql: query.sql,
+    sql: updateSql,
     affectedRows: null
   }
+
   function handleResult(err, result) {
     if (err) { return callback(err) }
+    console.dir(result)
+
     meta.affectedRows = result.affectedRows
     return callback(null, meta)
   }
