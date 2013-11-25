@@ -10,7 +10,9 @@ function load(db, tables, callback) {
       const sql = read(table)
       const statements = sql.split(';')
       statements.forEach(function (statement) {
-        db.query(statement)
+        db.query(statement, function (err) {
+          if (err) console.error(err)
+        })
       })
     })
     callback()

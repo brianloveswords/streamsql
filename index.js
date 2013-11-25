@@ -23,10 +23,16 @@ dbProto.table = function table(name, definition) {
 }
 
 dbProto.registerTable = function registerTable(name, def) {
+  const fields = def.fields || []
+  const primaryKey = def.primaryKey || 'id'
+
+  if (fields.indexOf(primaryKey) === -1)
+    fields.unshift(primaryKey)
+
   const table = create(tableProto, {
     table: def.tableName || name,
-    primaryKey: def.primaryKey || 'id',
-    fields: def.fields || [],
+    primaryKey: primaryKey,
+    fields: fields,
     row: def.methods || {},
     relationships: def.relationships || {},
     db: this,
@@ -90,11 +96,21 @@ tableProto.get = function get(cnd, opts, callback) {
   const rowProto = this.row
   const driver = this.db.driver
 
+  const table = this.table
+  const tableCache = this.db.tables
+  var relationships = opts.relationships || {}
+
+  if (typeof relationships == 'boolean' &&
+      relationships === true) {
+    relationships = this.relationships
+  }
+
+
   const selectSql = driver.selectSql({
     db: this.db,
-    table: this.table,
-    tables: this.db.tables,
-    relationships: opts.relationships,
+    table: table,
+    tables: tableCache,
+    relationships: relationships,
     fields: this.fields,
     conditions: cnd,
     limit: opts.limit,
@@ -106,18 +122,40 @@ tableProto.get = function get(cnd, opts, callback) {
 
   this.db.query(selectSql, opts.single ? singleRow : manyRows)
 
+  const hydrOpts = {
+    table: table,
+    relationships: relationships,
+    tableCache: tableCache,
+  }
+
   function singleRow(err, rows) {
     if (err) return callback(err)
     if (!rows.length) return
-    return callback(null, create(rowProto, rows[0]))
+
+    console.log('these rows', rows)
+    const singleton = rows[0]
+
+    if (!singleton)
+      return callback()
+
+    driver.hydrateRow(singleton, hydrOpts, function (err, result) {
+      if (err) return callback(err)
+      console.dir(rowProto)
+
+      return callback(null, create(rowProto, result))
+    })
   }
+
 
   function manyRows(err, rows) {
     if (err) return callback(err)
 
-    return callback(null, rows.map(function (row) {
-      return create(rowProto, row)
-    }))
+    driver.hydrateRows(rows, hydrOpts, function (err, rows) {
+      if (err) return callback(err)
+      return callback(null, rows.map(function (row) {
+        return create(rowProto, row)
+      }))
+    })
   }
 
   if (opts.debug)
