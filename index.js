@@ -1,4 +1,3 @@
-const Drivers = require('./lib/drivers')
 const Stream = require('stream')
 const util = require('util')
 const map = require('map-stream')
@@ -304,7 +303,7 @@ tableProto.createWriteStream = function createWriteStream(opts) {
 
 module.exports = {
   connect: function connect(options, callback) {
-    const driver = Drivers[options.driver || 'mysql']()
+    const driver = getDriver(options.driver)
     const connection = driver.connect(options, callback)
     return create(dbProto, {
       connection: connection,
@@ -314,4 +313,11 @@ module.exports = {
       driver: driver,
     })
   }
+}
+
+function getDriver(name) {
+  const drivers = require('./lib/drivers')
+  const prototype = require('./lib/drivers/prototype')
+  const implementation = drivers[name || 'mysql']()
+  return create(prototype, implementation)
 }
