@@ -5,7 +5,7 @@ const base = require('..')
 
 const db = base.connect({
   driver: 'sqlite',
-  database: 'whatever.db',
+  database: ':memory:',
 })
 
 const tables = ['user-sqlite', 'book-sqlite', 'profile-sqlite', 'review-sqlite']

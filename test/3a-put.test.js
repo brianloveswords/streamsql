@@ -4,7 +4,7 @@ const sqliteLoad = require('./sqlite-load')
 
 const db = base.connect({
   driver: 'sqlite',
-  database: 'whatever.db',
+  database: ':memory:',
 })
 
 const user = db.table('user', [

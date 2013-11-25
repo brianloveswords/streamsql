@@ -1,7 +1,7 @@
 DROP TABLE IF EXISTS `book`;
 CREATE TABLE `book` (
   `id` INTEGER PRIMARY KEY AUTOINCREMENT,
-  `author_id` BIGINT NOT NULL,
+  `author_id` INTEGER,
   `title` VARCHAR(255) NOT NULL UNIQUE,
   `release_date` VARCHAR(255) NOT NULL
 );
