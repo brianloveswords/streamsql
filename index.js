@@ -44,12 +44,7 @@ tableProto.put = function put(row, callback) {
   const meta = { row: row, sql: null, insertId: null }
   const query = this.db.query(insertSql, function (err, result) {
     if (err) {
-      const code = err.code
-      const message = err.message
-      const primaryKeyError = err.message.match(/for key .*?PRIMARY/)
-
-      if (((code == 'ER_DUP_ENTRY' && primaryKeyError) ||
-          message.match('PRIMARY KEY must be unique')) && tryUpdate)
+      if (tryUpdate && driver.putShouldUpdate(err))
         return this.update(row, callback)
       return callback(err)
     }
@@ -264,9 +259,8 @@ tableProto.createWriteStream = function createWriteStream(opts) {
       emit('meta', meta)
       emit('data', row)
 
-      if (callback && typeof callback == 'function') {
+      if (callback && typeof callback == 'function')
         callback(null, meta)
-      }
 
       return drain()
     })
@@ -282,26 +276,25 @@ tableProto.createWriteStream = function createWriteStream(opts) {
       row = null
     }
 
-    if (callback) {
+    if (callback)
       stream.on('end', callback)
-    }
 
     if (row) {
       stream.write(row)
       return stream.end()
     }
 
-    if (waiting > 0) {
+    if (waiting > 0)
       ending = true
-    } else {
+
+    else
       done()
-    }
   }
 
   return stream
 }
 
-module.exports = {
+const base = module.exports = {
   connect: function connect(options, callback) {
     const driver = getDriver(options.driver)
     const connection = driver.connect(options, callback)
