@@ -7,6 +7,12 @@ A streaming, backend agnostic SQL ORM  heavily inspired by <a href="https://gith
 
 ```bash
 $ npm install streamsql
+
+# if you want to use mysql driver
+$ npm install mysql
+
+# or you can use sqlite3 driver
+$ npm install sqlite3
 ```
 
 
