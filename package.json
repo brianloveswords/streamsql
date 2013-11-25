@@ -26,8 +26,12 @@
     "url": "git://github.com/brianloveswords/streamsql.git"
   },
   "keywords": [
+    "database",
     "streams",
+    "streaming",
     "mysql",
+    "sqlite3",
+    "sqlite",
     "orm"
   ],
   "author": "Brian J Brennan",
