@@ -98,6 +98,7 @@ db.table('friendship', {
 })
 ```
 
+<a name='relationships'></a>
 #### <code>options.relationships</code>
 
 You can define relationships on the data coming out `createReadStream` , `get` or `getOne`. `hasOne` relationships will translate to `JOIN`s at the SQL layer, and `hasMany` will perform an additional query.
