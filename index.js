@@ -198,8 +198,8 @@ tableProto.createReadStream = function createReadStream(conditions, opts) {
   const queryStream = this.db.queryStream(selectSql, {
     rowPrototype: this.row,
     relationships: relationships,
+    tableCache: this.db.tables,
     table: table,
-    tables: this.db.tableCache
   })
 
   if (opts.debug)
