@@ -214,13 +214,12 @@ tableProto.createKeyStream = function createKeyStream(conditions, opts) {
     include: [ primaryKey ]
   })
 
-  return (
-    this.createReadStream(conditions, opts)
-      .pipe(map(function (row, next) {
-        console.dir(row)
-        return next(null, row[primaryKey])
-      }))
-  )
+  const keyStream = this.createReadStream(conditions, opts)
+    .pipe(map(function (row, next) {
+      return next(null, row[primaryKey])
+    }))
+
+  return keyStream
 }
 
 tableProto.createWriteStream = function createWriteStream(opts) {
