@@ -89,7 +89,7 @@ Returns a `table` object.
 
 Inserts or updates a single row.
 
-An insert will always be attempted first. If the insert fails with an `ER_DUP_ENTRY` **and** the row contains the table's primaryKey, an update will be attempted
+An insert will always be attempted first. If the insert fails with an duplicate entry error (as tested by the specific driver implementation) **and** the row contains the table's primaryKey, an update will be attempted
 
 `callback` will receive two arguments: `err`, `result`. Result should have three properties, `row`, `sql`, and `insertId`. If the result of a `put()` is an update, the result will have `affectedRows` instead of `insertId`.
 
@@ -163,6 +163,8 @@ albums.get([
 <a name="get-options"></a>
 #### <code>options</code>
 
+* `include`: Rows to select from the database. Any rows not in this list will not included. Note, the primary key will **always** be included.
+* `exclude`: Rows in this list will not be selected from the database. If both `include` and `exclude` are defined, `include` is always preferred
 * `sort`: Can be one of three forms:
   - Implicit ascending, single column: <code>{sort: 'artist'}</code>
   - Implicit ascending, multiple rows: <code>{sort: ['artist', 'release_date']</code>
@@ -199,7 +201,7 @@ Create a ReadStream for the table.
 
 #### <code>pause()</code> and <code>resume()</code>
 
-`pause()` and `resume()` will operate on the underlying connection and you are guaranteed to not receive anymore `data` events after calling `pause()` (according to [the documentation](https://github.com/felixge/node-mysql#streaming-query-rows))
+`pause()` and `resume()` will attempt to operate on the underlying connection when applicable, [such as with the mysql driver](https://github.com/felixge/node-mysql#streaming-query-rows))
 
 #### Events
 
@@ -209,18 +211,21 @@ Create a ReadStream for the table.
 
 #### <code>options.relationships</code>
 
-<strong>NOTE: This is still experimental. `hasOne` relationships are working great, but you can only have one `hasMany` relationship at the moment.</strong>
+You can define relationships on the data coming out of the stream. `hasOne` relationships will translate to `JOIN`s at the SQL layer, and `hasMany` will perform an additional query.
 
-You can define relationships on the data coming out of the stream. This will translate to `JOIN`s at the SQL layer, so you can (potentially) see some performance gains versus populating manually.
+`options.relationships` is an object, keyed by property. The property name will be used when attaching the foreign rows to the main row.
 
-`options.relationships` is an object, keyed by property. The property name will be used when attaching the foreign rows to the main row. This will also be used as the source of the foreign key relationship unless a `from` property is defined.
-
-* `table`: the name of the foreign table. This should be a string that can be used with `db.table()` to look up the table cache.
 * `type`: Either `"hasOne"` or `"hasMany"`.
-* `foreign`: The foreign column to match against.
-* `from`: If the key name doesn't correspond to a local column, `from` should be used to specify it. Optional
+* `foreign`: Definition for the right side of the join.
+  * `table`: The name of the table. This should be the name you used to register the table with `db.table`.
+  * `as`: How to alias the table when performing the join. This is mostly useful when doing a self-join on a table so you don't get an ambiguity error. Defaults to the name of the table.
+  * `key`: The foreign key to use.
+* `local`: Definition for the left side of the join. If you're just joining on a key normally found in the current table, this can be a string. If you are doing a cascading join (i.e., joining against a field acquired from a different join) you can use an object here:
+  * `table`: The name of the table. **Important** if you aliased the table with `as`, use the alias here.
+  * `key`: Key to use
 * `optional`: Whether or not the relationship is optional (INNER vs LEFT join). Defaults to `false`.
-* `pivot`: This is sometimes necessary as a hint to help properly aggregate "hasMany" relationships. Foreign rows will be stored as an array on the current main row until `pivot` column on the main row changes. At that point the foreign rows will start aggregating against the new main row.
+
+The results of the fulfilled relationship will be attached to the main row by their key in the `relationships` object. All foreign items will have their methods as you defined them when setting up the table with `db.table`.
 
 ##### Example
 
@@ -245,9 +250,8 @@ id | user_id | text
 user.createReadStream({}, {
   relationships: {
     food: {
-      table: 'food',
       type: 'hasMany',
-      foreign: 'user_id',
+      foreign: { table: 'food',
       from: 'id',
       pivot: 'id',
     }
