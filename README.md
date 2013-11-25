@@ -174,7 +174,8 @@ const member = db.table('member', {
   fields: [ 'bandId', 'firstName', 'lastName' ]
 })
 
-// NOTE: for efficiency, relationships are not automatically populated. // You must pass { relationships: `true` } to fulfill the relationships
+// NOTE: for efficiency, relationships are not automatically populated.
+// You must pass { relationships: `true` } to fulfill the relationships
 // defined on the table at time of `get` or `createReadStream`
 
 band.getOne({}, {
