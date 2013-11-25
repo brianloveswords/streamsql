@@ -5,7 +5,6 @@
   "eqeqeq": false,
   "indent": 2,
   "latedef": "nofunc",
-  "quotmark": "single",
   "undef": true,
   "unused": true,
   "trailing": true,

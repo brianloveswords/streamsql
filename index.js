@@ -52,6 +52,7 @@ tableProto.put = function put(row, callback) {
       const code = err.code
       const message = err.message
       const primaryKeyError = err.message.match(/for key .*?PRIMARY/)
+
       if (((code == 'ER_DUP_ENTRY' && primaryKeyError) ||
           message.match('PRIMARY KEY must be unique')) && tryUpdate)
         return this.update(row, callback)
