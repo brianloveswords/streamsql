@@ -30,12 +30,12 @@ test('table.get, complex where', function (t) {
   useDb(t, ['user'], function (db, done) {
     const user = makeUserTable(db)
     user.get({
-      born: [
-        { value: '1950', op: '>=' },
-        { value: '1970', op: '<=' },
+      age: [
+        { value: 40, op: '>=' },
+        { value: 60, op: '<=' },
       ]
     }, {
-      sort: 'born',
+      sort: 'age',
       debug: true
     }, function (err, rows) {
       const expect = ['Saunders', 'Link']
@@ -64,6 +64,6 @@ function value(name) { return function (obj) { return obj[name] } }
 
 function makeUserTable(db) {
   return db.table('user', {
-    fields: ['first_name', 'last_name', 'born'],
+    fields: ['first_name', 'last_name', 'age'],
   })
 }
