@@ -4,7 +4,7 @@ const xtend = require('xtend')
 const base = require('..')
 
 const db = base.connect({
-  driver: 'sqlite',
+  driver: 'sqlite3',
   database: ':memory:',
 })
 

@@ -3,7 +3,7 @@ const base = require('..')
 const sqliteLoad = require('./sqlite-load')
 
 const db = base.connect({
-  driver: 'sqlite',
+  driver: 'sqlite3',
   database: ':memory:',
 })
 

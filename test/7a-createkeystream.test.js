@@ -5,7 +5,7 @@ const base = require('..')
 const concat = require('concat-stream')
 
 const db = base.connect({
-  driver: 'sqlite',
+  driver: 'sqlite3',
   database: ':memory:',
 })
 

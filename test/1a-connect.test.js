@@ -5,7 +5,7 @@ const env = process.env;
 
 test('connecting to a host', function (t) {
   const db = base.connect({
-    driver: 'sqlite',
+    driver: 'sqlite3',
     database: ':memory:',
   }, function (err) {
     t.notOk(err, 'no errors connecting')
