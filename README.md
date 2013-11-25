@@ -18,6 +18,7 @@ $ npm install streamsql
 
 ### DB
 * <a href="#table"><code>db.<b>table()</b></code></a>
+* <a href="#relationships"><b>relationships</b></a>
 
 ### Table
 
@@ -33,16 +34,41 @@ $ npm install streamsql
 <a name='connect'></a>
 ### base.connect(options)
 
-This is shorthand for [establishing a mysql connection](https://github.com/felixge/node-mysql#establishing-connections) and connecting to it. See the linked page for the connection options.
+Establish a database connection
+
+`options.driver` can either be `mysql` or `sqlite3`.
+
+#### Super Important Note
+
+`streamsql` loads drivers on demand and does **not** include them as production dependencies. You will need to have either one `mysql` (tested against `2.0.0-alpha9`) or `sqlite3` (tested against `2.1.19`) in your package.json in addition to `streamsql`.
+
+
+#### mysql optionss
+See the [documentation for the mysql module](https://github.com/felixge/node-mysql#establishing-connections) for full details. The `options` object will be passed over to that.
 
 ```js
-const streamSql = require('stream-sql')
-const db = streamSql.connect({
+const streamsql = require('streamsql')
+const db = streamsql.connect({
+  driver: 'mysql',
   user: process.env['DB_USER'],
   password: process.env['DB_PASSWORD'],
   database: 'music'
 })
 ```
+
+#### sqlite3 options
+
+Takes just one option, `opts.filename`. This can be set to `:memory:` for an in-memory database.
+
+
+```js
+const streamsql = require('streamsql')
+const db = streamsql.connect({
+  driver: 'sqlite3',
+  filename: ':memory:',
+})
+```
+
 
 Returns a `db` object
 
@@ -73,6 +99,109 @@ db.table('friendship', {
 })
 ```
 
+#### <code>options.relationships</code>
+
+You can define relationships on the data coming out `createReadStream` , `get` or `getOne`. `hasOne` relationships will translate to `JOIN`s at the SQL layer, and `hasMany` will perform an additional query.
+
+`options.relationships` is an object, keyed by property. The property name will be used when attaching the foreign rows to the main row.
+
+* `type`: Either `"hasOne"` or `"hasMany"`.
+* `foreign`: Definition for the right side of the join.
+  * `table`: The name of the table. This should be the name you used to register the table with `db.table`.
+  * `as`: How to alias the table when performing the join. This is mostly useful when doing a self-join on a table so you don't get an ambiguity error. Defaults to the name of the table.
+  * `key`: The foreign key to use.
+* `local`: Definition for the left side of the join. If you're just joining on a key normally found in the current table, this can be a string. If you are doing a cascading join (i.e., joining against a field acquired from a different join) you can use an object here:
+  * `table`: The name of the table. **Important** if you aliased the table with `as`, use the alias here.
+  * `key`: Key to use
+* `optional`: Whether or not the relationship is optional (INNER vs LEFT join). Defaults to `false`.
+
+The results of the fulfilled relationship will be attached to the main row by their key in the `relationships` object. All foreign items will have their methods as you defined them when setting up the table with `db.table`.
+
+##### Example
+
+**`band`** table
+
+```
+id | name   | founded | disbanded
+---|--------|---------|-----------
+ 1 | Slint  |    1986 |      1992
+```
+
+**`album`** table
+
+```
+id | bandId | name        | released
+---|--------|-------------|----------
+ 1 |      1 | Tweez       |     1989
+ 2 |      1 | Spiderland  |     1991
+```
+
+
+**`member`** table
+
+```
+id | bandId | firstName | lastName
+---|--------|-----------|----------
+ 1 |      1 | Brian     | McMahon
+ 2 |      1 | David     | Pajo
+ 3 |      1 | Todd      | Brashear
+ 4 |      1 | Britt     | Walford
+```
+
+
+```js
+const band = db.table('band', {
+  fields: [ 'name', 'founded', 'disbanded' ],
+  relationships: {
+    albums: {
+      type: 'hasMany',
+      local: 'id',
+      foreign: { table: 'album', key: 'bandId' }
+    },
+    members: {
+      type: 'hasMany',
+      local: 'id',
+      foreign: { table: 'member', key: 'bandId' }
+    }
+  }
+})
+
+const album = db.table('album', {
+  fields: [ 'bandId', 'name', 'released' ]
+})
+
+const member = db.table('member', {
+  fields: [ 'bandId', 'firstName', 'lastName' ]
+})
+
+// NOTE: for efficiency, relationships are not automatically populated. // You must pass { relationships: `true` } to fulfill the relationships
+// defined on the table at time of `get` or `createReadStream`
+
+band.getOne({}, {
+  debug: true,
+  relationships: true
+}, function (err, row) {
+  console.dir(row)
+})
+```
+
+Will result in:
+
+```js
+{ id: 1,
+  name: 'Slint',
+  founded: 1986,
+  disbanded: 1992,
+  albums:
+   [ { id: 1, bandId: 1, name: 'Tweez', released: 1989 },
+     { id: 2, bandId: 1, name: 'Spiderland', released: 1991 } ],
+  members:
+   [ { id: 1, bandId: 1, firstName: 'Brian', lastName: 'McMahon' },
+     { id: 2, bandId: 1, firstName: 'David', lastName: 'Pajo' },
+     { id: 3, bandId: 1, firstName: 'Todd', lastName: 'Brashear' },
+     { id: 4, bandId: 1, firstName: 'Britt', lastName: 'Walford' } ] }
+```
+
 Returns a `table` object.
 
 --------------------------------------------------------
@@ -80,6 +209,8 @@ Returns a `table` object.
 ### db.table(localName)
 
 Return a previously registered table. If the table is not in the internal cache, `db.table` will throw an error.
+
+
 
 Returns a `table` object.
 
@@ -165,6 +296,7 @@ albums.get([
 
 * `include`: Rows to select from the database. Any rows not in this list will not included. Note, the primary key will **always** be included.
 * `exclude`: Rows in this list will not be selected from the database. If both `include` and `exclude` are defined, `include` is always preferred
+* `relationships`: Either boolean or a set of relationship definition.
 * `sort`: Can be one of three forms:
   - Implicit ascending, single column: <code>{sort: 'artist'}</code>
   - Implicit ascending, multiple rows: <code>{sort: ['artist', 'release_date']</code>
@@ -208,82 +340,6 @@ Create a ReadStream for the table.
 * `data`: Receives one argument, `row`.
 * `error`: If there is an error, it will be emitted here.
 * `end`: When the stream is complete.
-
-#### <code>options.relationships</code>
-
-You can define relationships on the data coming out of the stream. `hasOne` relationships will translate to `JOIN`s at the SQL layer, and `hasMany` will perform an additional query.
-
-`options.relationships` is an object, keyed by property. The property name will be used when attaching the foreign rows to the main row.
-
-* `type`: Either `"hasOne"` or `"hasMany"`.
-* `foreign`: Definition for the right side of the join.
-  * `table`: The name of the table. This should be the name you used to register the table with `db.table`.
-  * `as`: How to alias the table when performing the join. This is mostly useful when doing a self-join on a table so you don't get an ambiguity error. Defaults to the name of the table.
-  * `key`: The foreign key to use.
-* `local`: Definition for the left side of the join. If you're just joining on a key normally found in the current table, this can be a string. If you are doing a cascading join (i.e., joining against a field acquired from a different join) you can use an object here:
-  * `table`: The name of the table. **Important** if you aliased the table with `as`, use the alias here.
-  * `key`: Key to use
-* `optional`: Whether or not the relationship is optional (INNER vs LEFT join). Defaults to `false`.
-
-The results of the fulfilled relationship will be attached to the main row by their key in the `relationships` object. All foreign items will have their methods as you defined them when setting up the table with `db.table`.
-
-##### Example
-
-**user** table
-
-id | handle | name | location
----|--------|------|---------
-1 | brianloveswords | brian | brooklyn
-2 | mozilla | mozilla | the internet
-
-**food** table
-
-id | user_id | text
----|----------|-----
-1 | 1 | tacos
-2 | 1 | pizza
-3 | 2 | burritos
-4 | 2 | fries
-5 | 1 | salmon
-
-```js
-user.createReadStream({}, {
-  relationships: {
-    food: {
-      type: 'hasMany',
-      foreign: { table: 'food',
-      from: 'id',
-      pivot: 'id',
-    }
-  }
-})
-```
-
-This would emit two rows:
-```js
-// row 1
-{ id: 1,
-  handle: 'brianloveswords',
-  name: 'brian',
-  location: 'brooklyn',
-  food: [
-    { id: 1, user_id 1,  text: 'tacos' },
-    { id: 2, user_id 1,  text: 'pizza' },
-    { id: 5, user_id 1,  text: 'salmon' },
-  ]
-}
-
-// row 2
-{ id: 2,
-  handle: 'mozilla',
-  name: 'mozilla',
-  location: 'the internet',
-  food: [
-    { id: 3, user_id 2, text: 'burittos'},
-    { id: 4, user_id 2, text: 'fries' }
-  ]
-}
-```
 
 --------------------------------------------------------
 <a name='readStream'></a>
