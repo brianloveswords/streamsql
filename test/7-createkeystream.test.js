@@ -7,7 +7,10 @@ const tables = ['book']
 test('table.createKeyStream: no condition', function (t) {
   useDb(t, tables, function (db, done) {
     const book = makeBookDb(db)
-    book.createKeyStream().pipe(concat(function (ids) {
+    book.createKeyStream({}, {
+      orderBy: 'id',
+      debug: true
+    }).pipe(concat(function (ids) {
       book.get(function (err, rows) {
         t.same(rows.map(field('id')), ids, 'should have same ids')
         t.end()

@@ -2,10 +2,8 @@ const Drivers = require('./lib/drivers')
 const mysql = require('mysql')
 const Stream = require('stream')
 const util = require('util')
-const sql = require('./lib/sql')
 const map = require('map-stream')
-const extend = require('xtend')
-const _ = require('lodash')
+const xtend = require('xtend')
 const create = require('./lib/create')
 const fmt = util.format.bind(util)
 
@@ -112,7 +110,7 @@ tableProto.get = function get(cnd, opts, callback) {
     include: opts.include,
     exclude: opts.exclude,
     page: opts.page,
-    order: opts.sort || opts.order ||opts.orderBy,
+    order: opts.order || opts.orderBy,
   })
 
   this.db.query(selectSql, opts.single ? singleRow : manyRows)
@@ -141,7 +139,7 @@ tableProto.getOne = function getOne(cnd, opts, callback) {
     opts = {}
   }
   const singularOpts = { limit: 1, single: true }
-  return this.get(cnd, extend(opts, singularOpts), callback)
+  return this.get(cnd, xtend(opts, singularOpts), callback)
 }
 
 tableProto.del = function del(cnd, opts, callback) {
@@ -190,7 +188,7 @@ tableProto.createReadStream = function createReadStream(conditions, opts) {
     relationships: relationships,
     include: opts.include,
     exclude: opts.exclude,
-    order: opts.sort || opts.order || opts.orderBy,
+    order: opts.order || opts.orderBy,
   })
 
   const tableCache = this.db.tables
@@ -209,12 +207,17 @@ tableProto.createReadStream = function createReadStream(conditions, opts) {
 }
 
 tableProto.createKeyStream = function createKeyStream(conditions, opts) {
-  // TODO: optimize by implementing ability to include/exclude columns
-  // from a query.
   const primaryKey = this.primaryKey
+
+  opts = xtend(opts, {
+    orderBy: opts.orderBy || primaryKey,
+    include: [ primaryKey ]
+  })
+
   return (
     this.createReadStream(conditions, opts)
       .pipe(map(function (row, next) {
+        console.dir(row)
         return next(null, row[primaryKey])
       }))
   )
