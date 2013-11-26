@@ -304,7 +304,7 @@ albums.get([
 <a name="get-options"></a>
 #### <code>options</code>
 
-* `include`: Rows to select from the database. Any rows not in this list will not included. Note, the primary key will **always** be included. By default, everything listed in `table.fields` will be included.
+* `include`: Rows to select from the database. Any rows not in this list will not be included. Note, the primary key will **always** be included. By default, everything listed in `table.fields` will be included.
 * `exclude`: Rows in this list will not be selected from the database. If both `include` and `exclude` are defined, `include` is always preferred
 * `relationships`: Either boolean or a set of relationship definition.
 * `sort`: Can be one of three forms:
