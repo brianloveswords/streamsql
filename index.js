@@ -8,6 +8,12 @@ const fmt = util.format.bind(util)
 const dbProto = {}
 const tableProto = {}
 
+var defaultGenerator = function generateTableRow(data) {
+  // somewhat naive - potentially worth checking data for correctness
+  // currently assuming that data passed in is correct for table
+  return create(this.row, data)
+}
+
 dbProto.close = function close(callback) {
   return this.driver.close(this.connection, callback)
 }
@@ -29,11 +35,14 @@ dbProto.registerTable = function registerTable(name, def) {
   if (fields.indexOf(primaryKey) === -1)
     fields.unshift(primaryKey)
 
+  var generator = def.generator || defaultGenerator
+
   const table = create(tableProto, {
     table: def.tableName || name,
     primaryKey: primaryKey,
     fields: fields,
     row: def.methods || {},
+    create: generator,
     relationships: def.relationships || {},
     db: this,
   })
@@ -93,7 +102,7 @@ tableProto.get = function get(cnd, opts, callback) {
     opts = {}
   }
 
-  const rowProto = this.row
+  const createRow = this.create.bind(this)
   const driver = this.db.driver
 
   const table = this.table
@@ -140,9 +149,8 @@ tableProto.get = function get(cnd, opts, callback) {
 
     driver.hydrateRow(singleton, hydrOpts, function (err, result) {
       if (err) return callback(err)
-      console.dir(rowProto)
 
-      return callback(null, create(rowProto, result))
+      return callback(null, createRow(result))
     })
   }
 
@@ -153,7 +161,7 @@ tableProto.get = function get(cnd, opts, callback) {
     driver.hydrateRows(rows, hydrOpts, function (err, rows) {
       if (err) return callback(err)
       return callback(null, rows.map(function (row) {
-        return create(rowProto, row)
+        return createRow(row)
       }))
     })
   }
