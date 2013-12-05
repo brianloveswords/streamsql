@@ -108,6 +108,21 @@ test('table.get, relationships', function (t) {
   })
 })
 
+// https://github.com/brianloveswords/streamsql/issues/5
+test('table.getOne, should not hang on empty rows', function (t) {
+  useDb(t, ['empty'], function (db, done) {
+    const empty = db.table('empty', ['space'])
+
+    empty.getOne({ id: 1 }, {
+      debug: true,
+    }, function (err, row) {
+      console.dir(row)
+      t.end();
+    })
+  })
+})
+
+
 function value(name) { return function (obj) { return obj[name] } }
 
 function makeUserTable(db) {
