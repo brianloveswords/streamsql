@@ -1,5 +1,11 @@
 const test = require('tap').test
-const useDb = require('./testdb')
+const base = require('..')
+const sqliteLoad = require('./sqlite-load')
+
+const db = base.connect({
+  driver: 'sqlite3',
+  database: ':memory:',
+})
 
 function initObj (obj, data) {
   Object.keys(data).forEach(function(key) {
@@ -22,8 +28,8 @@ const Book = function Book (data) {
   initObj(this, data);
 }
 
-test('default generator', function (t) {
-  useDb(t, ['review'], function (db, done) {
+test('default constructor', function (t) {
+  sqliteLoad(db, ['review-sqlite'], function () {
     const review = makeReviewTable(db)
 
     review.getOne({ id: 1 }, {
@@ -31,14 +37,14 @@ test('default generator', function (t) {
     }, function (err, row) {
       t.notOk(err, 'no errors')
       t.equal(row.book_id, 1, 'review is of correct book')
-      t.type(row.linkify, 'function', 'row methods picked up by default generator')
+      t.type(row.linkify, 'function', 'row methods picked up by default constructor')
       t.end()
     })
   })
 })
 
-test('custom generator', function (t) {
-  useDb(t, ['user'], function(db, done) {
+test('custom constructor', function (t) {
+  sqliteLoad(db, ['user-sqlite'], function () {
     const user = makeUserTable(db)
 
     user.getOne({last_name: 'Hannah'}, function (err, row) {
@@ -50,8 +56,8 @@ test('custom generator', function (t) {
   });
 })
 
-test('custom generators with relationships', function (t) {
-  useDb(t, ['user', 'book'], function(db, done) {
+test('custom constructors with relationships', function (t) {
+  sqliteLoad(db, ['user-sqlite', 'book-sqlite'], function() {
     const user = makeUserTable(db)
     const book = makeBookTable(db)
 
@@ -83,18 +89,14 @@ function makeReviewTable(db) {
 function makeUserTable(db) {
   return db.table('user', {
     fields: ['first_name', 'last_name', 'age'],
-    generator: function (data) {
-      return new User(data);
-    }
+    constructor: User
   })
 }
 
 function makeBookTable(db) {
   return db.table('book', {
     fields: [ 'id', 'author_id', 'title', 'release_date' ],
-    generator: function (data) {
-      return new Book(data)
-    },
+    constructor: Book,
     relationships: {
       author: {
         type: 'hasOne',

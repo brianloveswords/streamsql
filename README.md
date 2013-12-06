@@ -97,7 +97,7 @@ Registers a table against the internal table cache. Note, this **does not** crea
 
 * `fields`: an array representing all the fields this table has. Example: `['id', 'first_name', 'last_name', 'created_at']`
 
-* `methods`: (optional) methods to add to a row object as it gets emitted from the database (when using the default `generator`). `this` in the function context will be a reference to the row. Example:
+* `methods`: (optional) methods to add to a row object as it gets emitted from the database (when using the default `constructor`). `this` in the function context will be a reference to the row. Example:
 
 ```js
 db.table('friendship', {
@@ -110,7 +110,7 @@ db.table('friendship', {
 })
 ```
 
-* `generator`: (optional) method to call when creating a row object as it gets emitted from the database. The default generator should be sufficient for most scenarios, which returns the data combined with any given `methods`. `this` in the function context will be a reference to the table. Example:
+* `constructor`: (optional) method to call when creating a row object as it gets emitted from the database. The default constructor should be sufficient for most scenarios, which returns the data combined with any given `methods`. Example:
 
 ```js
 function Friendship (data) {
@@ -125,8 +125,7 @@ Friendship.prototype.hifive = function () {
 
 db.table('friendship', {
   fields: [ 'id', 'screen_name', 'friend' ],
-  generator: function (row) {
-    return new Friendship(row)
+  constructor: Friendship
   }
 })
 ```
@@ -148,7 +147,7 @@ You can define relationships on the data coming out `createReadStream` , `get` o
   * `key`: Key to use
 * `optional`: Whether or not the relationship is optional (INNER vs LEFT join). Defaults to `false`.
 
-The results of the fulfilled relationship will be attached to the main row by their key in the `relationships` object. All foreign items will have their methods as you defined them when setting up the table with `db.table`, or use their configured `generator` where applicable.
+The results of the fulfilled relationship will be attached to the main row by their key in the `relationships` object. All foreign items will have their methods as you defined them when setting up the table with `db.table`, or use their configured `constructor` where applicable.
 
 ##### Example
 
