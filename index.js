@@ -137,9 +137,8 @@ tableProto.get = function get(cnd, opts, callback) {
 
   function singleRow(err, rows) {
     if (err) return callback(err)
-    if (!rows.length) return
+    if (!rows.length) return callback()
 
-    console.log('these rows', rows)
     const singleton = rows[0]
 
     if (!singleton)
