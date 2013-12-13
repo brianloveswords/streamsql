@@ -29,14 +29,22 @@ dbProto.registerTable = function registerTable(name, def) {
   if (fields.indexOf(primaryKey) === -1)
     fields.unshift(primaryKey)
 
+  if (!def.hasOwnProperty('constructor')) {
+    def.constructor = function createRow (data) {
+      return create(table.row, data)
+    }
+  }
+
   const table = create(tableProto, {
     table: def.tableName || name,
     primaryKey: primaryKey,
     fields: fields,
     row: def.methods || {},
+    constructor: def.constructor,
     relationships: def.relationships || {},
     db: this,
   })
+
   this.tables[name] = table
   return table
 }
@@ -93,7 +101,7 @@ tableProto.get = function get(cnd, opts, callback) {
     opts = {}
   }
 
-  const rowProto = this.row
+  const RowClass = this.constructor
   const driver = this.db.driver
 
   const table = this.table
@@ -104,7 +112,6 @@ tableProto.get = function get(cnd, opts, callback) {
       relationships === true) {
     relationships = this.relationships
   }
-
 
   const selectSql = driver.selectSql({
     db: this.db,
@@ -139,9 +146,8 @@ tableProto.get = function get(cnd, opts, callback) {
 
     driver.hydrateRow(singleton, hydrOpts, function (err, result) {
       if (err) return callback(err)
-      console.dir(rowProto)
 
-      return callback(null, create(rowProto, result))
+      return callback(null, new RowClass(result))
     })
   }
 
@@ -152,7 +158,7 @@ tableProto.get = function get(cnd, opts, callback) {
     driver.hydrateRows(rows, hydrOpts, function (err, rows) {
       if (err) return callback(err)
       return callback(null, rows.map(function (row) {
-        return create(rowProto, row)
+        return new RowClass(row)
       }))
     })
   }

@@ -92,9 +92,12 @@ Registers a table against the internal table cache. Note, this **does not** crea
 #### <code>definition</code>
 
 * `primaryKey`: the primary key for the table. Defaults to `id`
+
 * `tableName`: the name of the table in the actual database. Defaults to `localName`
+
 * `fields`: an array representing all the fields this table has. Example: `['id', 'first_name', 'last_name', 'created_at']`
-* `methods`: methods to add to a row object as it gets emitted from the database. `this` in the function context will be a reference to the row. Example:
+
+* `methods`: (optional) methods to add to a row object as it gets emitted from the database (when using the default `constructor`). `this` in the function context will be a reference to the row. Example:
 
 ```js
 db.table('friendship', {
@@ -103,6 +106,26 @@ db.table('friendship', {
     hifive: function hifive() {
       return this.screen_name + ' deserves a hifive!'
     }
+  }
+})
+```
+
+* `constructor`: (optional) method to call when creating a row object as it gets emitted from the database. The default constructor should be sufficient for most scenarios, which returns the data combined with any given `methods`. Example:
+
+```js
+function Friendship (data) {
+  this.id = data.id
+  this.screen_name = data.screen_name
+  this.friend = data.friend
+}
+
+Friendship.prototype.hifive = function () {
+  return this.screen_name + ' deserves a hifive!'
+}
+
+db.table('friendship', {
+  fields: [ 'id', 'screen_name', 'friend' ],
+  constructor: Friendship
   }
 })
 ```
@@ -124,7 +147,7 @@ You can define relationships on the data coming out `createReadStream` , `get` o
   * `key`: Key to use
 * `optional`: Whether or not the relationship is optional (INNER vs LEFT join). Defaults to `false`.
 
-The results of the fulfilled relationship will be attached to the main row by their key in the `relationships` object. All foreign items will have their methods as you defined them when setting up the table with `db.table`.
+The results of the fulfilled relationship will be attached to the main row by their key in the `relationships` object. All foreign items will have their methods as you defined them when setting up the table with `db.table`, or use their configured `constructor` where applicable.
 
 ##### Example
 
