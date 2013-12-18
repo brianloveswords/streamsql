@@ -7,7 +7,7 @@ test('table.get', function (t) {
       fields: ['first_name', 'last_name'],
     })
 
-    user.del({last_name: 'Hannah'}, function (err, result) {
+    user.del({haunted: null, last_name: 'Hannah'}, function (err, result) {
       t.notOk(err, 'no errors')
       t.same(result.affectedRows, 1, 'should affect one row')
 
