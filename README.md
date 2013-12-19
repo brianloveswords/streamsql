@@ -126,7 +126,6 @@ Friendship.prototype.hifive = function () {
 db.table('friendship', {
   fields: [ 'id', 'screen_name', 'friend' ],
   constructor: Friendship
-  }
 })
 ```
 
