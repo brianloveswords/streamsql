@@ -108,6 +108,22 @@ test('table.get, relationships', function (t) {
   })
 })
 
+// https://github.com/brianloveswords/streamsql/issues/10
+test('table.get, relationships should not hang when query returns empty set', function (t) {
+  useDb(t, ['user', 'book'], function (db, done) {
+    const user = makeUserTable(db)
+    const book = makeBookTable(db)
+
+    user.get({ id: 'whatever' }, {
+      debug: true,
+      relationships: true
+    }, function (err, authors) {
+      t.same(authors, [])
+      t.end()
+    })
+  })
+})
+
 // https://github.com/brianloveswords/streamsql/issues/5
 test('table.getOne, should not hang on empty rows', function (t) {
   useDb(t, ['empty'], function (db, done) {
