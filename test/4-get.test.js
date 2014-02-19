@@ -133,7 +133,21 @@ test('table.getOne, should not hang on empty rows', function (t) {
       debug: true,
     }, function (err, row) {
       console.dir(row)
-      t.end();
+      t.end()
+    })
+  })
+})
+
+// https://github.com/brianloveswords/streamsql/issues/8
+test('table.get, better raw sql handling', function (t) {
+  useDb(t, ['empty'], function (db, done) {
+    const empty = db.table('empty', ['space'])
+
+    empty.getOne('select 1 as `lol`', {
+      debug: true,
+    }, function (err, row) {
+      t.same(row, {lol: 1})
+      t.end()
     })
   })
 })
