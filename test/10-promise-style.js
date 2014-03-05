@@ -4,7 +4,7 @@ const useDb = require('./testdb')
 test('table.get', function (t) {
   useDb(t, ['user'], function (db) {
     const user = makeUserTable(db)
-    const getUsers = user.get()
+    const getUsers = user.getAll()
 
     getUsers.then(function (users) {
       t.same(users.length, 3)

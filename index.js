@@ -202,6 +202,10 @@ tableProto.get = function get(cnd, opts, callback) {
   return resolver.promise
 }
 
+tableProto.getAll = function getAll(opts, callback) {
+  return this.get({}, opts, callback)
+}
+
 tableProto.getOne = function getOne(cnd, opts, callback) {
   if (typeof opts == 'function') {
     callback = opts
