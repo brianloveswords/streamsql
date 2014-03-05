@@ -152,6 +152,21 @@ test('table.get, better raw sql handling', function (t) {
   })
 })
 
+test('table.get, better error messaging', function (t) {
+  useDb(t, ['empty'], function (db, done) {
+    const empty = db.table('empty', ['space'])
+
+    empty.getOne({id: undefined}, {
+      debug: true,
+    }, function (err, row) {
+      t.same(err.name, 'RangeError')
+      t.end()
+    })
+
+  })
+})
+
+
 
 function value(name) { return function (obj) { return obj[name] } }
 

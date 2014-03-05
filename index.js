@@ -107,6 +107,7 @@ tableProto.get = function get(cnd, opts, callback) {
   const table = this.table
   const tableCache = this.db.tables
   var relationships = opts.relationships || {}
+  var error = {}
 
   if (typeof relationships == 'boolean' &&
       relationships === true) {
@@ -126,6 +127,11 @@ tableProto.get = function get(cnd, opts, callback) {
     page: opts.page,
     order: opts.order || opts.orderBy,
   })
+
+  if (typeof selectSql == 'object' && selectSql.name == 'RangeError') {
+    error = selectSql
+    return setImmediate(callback.bind(null, error))
+  }
 
   this.db.query(selectSql, opts.single ? singleRow : manyRows)
 
