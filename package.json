@@ -1,6 +1,6 @@
 {
   "name": "streamsql",
-  "version": "0.4.5",
+  "version": "0.5.0",
   "description": "Streaming SQL ORM",
   "main": "index.js",
   "directories": {
