@@ -88,7 +88,7 @@ tableProto.update = function update(row, callback) {
   const primaryKey = this.primaryKey
   const driver = this.db.driver
   const updateSql = driver.updateSql(table, row, primaryKey)
-  const query = this.db.query(updateSql, handleResult.bind(this))
+  const query = this.db.query(updateSql, handleResult)
   const meta = {
     row: row,
     sql: updateSql,
