@@ -121,11 +121,7 @@ tableProto.get = function get(cnd, opts, callback) {
       cnd = {}
       opts = {}
     }
-    resolver = {
-      resolve: function (value) { callback(null, value) },
-      reject: function (error) { callback(error) },
-      promise: this
-    }
+    resolver = callbackResolver(callback)
   }
 
   const RowClass = this.constructor
