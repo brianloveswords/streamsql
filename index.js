@@ -1,8 +1,11 @@
 const Stream = require('stream')
 const util = require('util')
+const Promise = require('bluebird')
 const map = require('map-stream')
 const xtend = require('xtend')
 const create = require('./lib/create')
+const hasCallback = require('./lib/has-callback')
+const callbackResolver = require('./lib/callback-resolver')
 const fmt = util.format.bind(util)
 
 const dbProto = {}
@@ -50,6 +53,10 @@ dbProto.registerTable = function registerTable(name, def) {
 }
 
 tableProto.put = function put(row, callback) {
+  const resolver = hasCallback(arguments)
+    ? callbackResolver(callback, this)
+    : Promise.defer()
+
   const table = this.table
   const primaryKey = this.primaryKey
   const driver = this.db.driver
@@ -59,23 +66,29 @@ tableProto.put = function put(row, callback) {
   const query = this.db.query(insertSql, function (err, result) {
     if (err) {
       if (tryUpdate && driver.putShouldUpdate(err))
-        return this.update(row, callback)
-      return callback(err)
+        return this.update(row, resolver.callback)
+      return resolver.reject(err)
     }
 
     meta.sql = insertSql
     meta.insertId = result.insertId
 
-    return callback(null, meta)
+    return resolver.resolve( meta)
   }.bind(this))
+
+  return resolver.promise
 }
 
 tableProto.update = function update(row, callback) {
+  const resolver = hasCallback(arguments)
+    ? callbackResolver(callback, this)
+    : Promise.defer()
+
   const table = this.table
   const primaryKey = this.primaryKey
   const driver = this.db.driver
   const updateSql = driver.updateSql(table, row, primaryKey)
-  const query = this.db.query(updateSql, handleResult.bind(this))
+  const query = this.db.query(updateSql, handleResult)
   const meta = {
     row: row,
     sql: updateSql,
@@ -83,22 +96,32 @@ tableProto.update = function update(row, callback) {
   }
 
   function handleResult(err, result) {
-    if (err) { return callback(err) }
+    if (err) { return resolver.reject(err) }
     meta.affectedRows = result.affectedRows
-    return callback(null, meta)
+    return resolver.resolve(meta)
   }
+
+  return resolver.promise
 }
 
 tableProto.get = function get(cnd, opts, callback) {
-  if (typeof opts == 'function') {
-    callback = opts
-    opts = {}
-  }
+  var resolver = Promise.defer()
 
-  if (typeof cnd == 'function') {
-    callback = cnd
-    cnd = {}
-    opts = {}
+  cnd = cnd || {}
+  opts = opts || {}
+
+  if (hasCallback(arguments)) {
+    if (typeof opts == 'function') {
+      callback = opts
+      opts = {}
+    }
+
+    if (typeof cnd == 'function') {
+      callback = cnd
+      cnd = {}
+      opts = {}
+    }
+    resolver = callbackResolver(callback)
   }
 
   const RowClass = this.constructor
@@ -109,6 +132,7 @@ tableProto.get = function get(cnd, opts, callback) {
 
   var relationshipsDepth = opts.relationshipsDepth
   var relationships = opts.relationships
+  var error = {}
 
   if (typeof relationships == 'boolean' &&
       relationships === true) {
@@ -151,6 +175,11 @@ tableProto.get = function get(cnd, opts, callback) {
     order: opts.order || opts.orderBy,
   })
 
+  if (typeof selectSql == 'object' && selectSql.name == 'RangeError') {
+    error = selectSql
+    return setImmediate(resolver.reject.bind(null, error))
+  }
+
   this.db.query(selectSql, opts.single ? singleRow : manyRows)
 
   const hydrOpts = {
@@ -160,28 +189,28 @@ tableProto.get = function get(cnd, opts, callback) {
   }
 
   function singleRow(err, rows) {
-    if (err) return callback(err)
-    if (!rows.length) return callback()
+    if (err) return resolver.reject(err)
+    if (!rows.length) return resolver.resolve()
 
     const singleton = rows[0]
 
     if (!singleton)
-      return callback()
+      return resolver.resolve()
 
     driver.hydrateRow(singleton, hydrOpts, function (err, result) {
-      if (err) return callback(err)
+      if (err) return resolver.reject(err)
 
-      return callback(null, new RowClass(result))
+      return resolver.resolve(new RowClass(result))
     })
   }
 
 
   function manyRows(err, rows) {
-    if (err) return callback(err)
+    if (err) return resolver.reject(err)
 
     driver.hydrateRows(rows, hydrOpts, function (err, rows) {
-      if (err) return callback(err)
-      return callback(null, rows.map(function (row) {
+      if (err) return resolver.reject(err)
+      return resolver.resolve(rows.map(function (row) {
         return new RowClass(row)
       }))
     })
@@ -228,6 +257,12 @@ tableProto.get = function get(cnd, opts, callback) {
 
   if (opts.debug)
     console.error(selectSql)
+
+  return resolver.promise
+}
+
+tableProto.getAll = function getAll(opts, callback) {
+  return this.get({}, opts, callback)
 }
 
 tableProto.getOne = function getOne(cnd, opts, callback) {
@@ -240,11 +275,18 @@ tableProto.getOne = function getOne(cnd, opts, callback) {
 }
 
 tableProto.del = function del(cnd, opts, callback) {
-  if (typeof opts == 'function') {
-    callback = opts
-    opts = null
+  var resolver = Promise.defer()
+
+  if (hasCallback(arguments)) {
+    if (typeof opts == 'function') {
+      callback = opts
+      opts = null
+    }
+    resolver = callbackResolver(callback)
   }
+
   opts = opts || {}
+
   const query = this.db.query
   const driver = this.db.driver
   const table = this.table
@@ -257,7 +299,13 @@ tableProto.del = function del(cnd, opts, callback) {
   if (opts.debug)
     console.error(deleteSql)
 
-  return query(deleteSql, callback)
+  // the callback for query generally has an arity of 3, we only want an
+  // arity of 2, so we have to do this little dance.
+  query(deleteSql, function (err, success) {
+    resolver.callback(err, success)
+  })
+
+  return resolver.promise
 }
 
 tableProto.createReadStream = function createReadStream(conditions, opts) {

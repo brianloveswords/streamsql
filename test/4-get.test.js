@@ -127,7 +127,23 @@ test('table.get, nested relationships', function (t) {
       t.same(review.book.author.test(), 'This is a user', 'author is model instance')
       t.ok(review.book.author.books, 'review book author publications returned')
       t.same(review.book.author.books[0].test(), 'This is a book', 'review book author publications are model instances')
+      t.end()
+    })
+  })
+})
 
+
+// https://github.com/brianloveswords/streamsql/issues/10
+test('table.get, relationships should not hang when query returns empty set', function (t) {
+  useDb(t, ['user', 'book'], function (db, done) {
+    const user = makeUserTable(db)
+    const book = makeBookTable(db)
+
+    user.get({ id: 'whatever' }, {
+      debug: true,
+      relationships: true
+    }, function (err, authors) {
+      t.same(authors, [])
       t.end()
     })
   })
@@ -142,10 +158,39 @@ test('table.getOne, should not hang on empty rows', function (t) {
       debug: true,
     }, function (err, row) {
       console.dir(row)
-      t.end();
+      t.end()
     })
   })
 })
+
+// https://github.com/brianloveswords/streamsql/issues/8
+test('table.get, better raw sql handling', function (t) {
+  useDb(t, ['empty'], function (db, done) {
+    const empty = db.table('empty', ['space'])
+
+    empty.getOne('select 1 as `lol`', {
+      debug: true,
+    }, function (err, row) {
+      t.same(row, {lol: 1})
+      t.end()
+    })
+  })
+})
+
+test('table.get, better error messaging', function (t) {
+  useDb(t, ['empty'], function (db, done) {
+    const empty = db.table('empty', ['space'])
+
+    empty.getOne({id: undefined}, {
+      debug: true,
+    }, function (err, row) {
+      t.same(err.name, 'RangeError')
+      t.end()
+    })
+
+  })
+})
+
 
 
 function value(name) { return function (obj) { return obj[name] } }

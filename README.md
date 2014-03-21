@@ -32,6 +32,8 @@ $ npm install sqlite3
 
 * <a href="#put"><code>table.<b>put</b>()</code></a>
 * <a href="#get"><code>table.<b>get</b>()</code></a>
+* <a href="#get"><code>table.<b>getOne</b>()</code></a>
+* <a href="#get"><code>table.<b>getAll</b>()</code></a>
 * <a href="#del"><code>table.<b>del</b>()</code></a>
 * <a href="#readStream"><code>table.<b>createReadStream</b>()</code></a>
 * <a href="#keyStream"><code>table.<b>createKeyStream</b>()</code></a>
@@ -126,7 +128,6 @@ Friendship.prototype.hifive = function () {
 db.table('friendship', {
   fields: [ 'id', 'screen_name', 'friend' ],
   constructor: Friendship
-  }
 })
 ```
 
@@ -249,9 +250,9 @@ Returns a `table` object.
 
 --------------------------------------------------------
 <a name='put'></a>
-### table.put(row, callback)
+### table.put(row, [callback])
 
-Inserts or updates a single row.
+Inserts or updates a single row. If `callback` is not provided, returns a promise.
 
 An insert will always be attempted first. If the insert fails with an duplicate entry error (as tested by the specific driver implementation) **and** the row contains the table's primaryKey, an update will be attempted
 
@@ -259,10 +260,32 @@ An insert will always be attempted first. If the insert fails with an duplicate 
 
 --------------------------------------------------------
 <a name='get'></a>
-### table.get(conditions, options, callback)
-### table.getOne(conditions, options, callback)
+### table.get(conditions, [options, [callback]])
+### table.getOne(conditions, [options, [callback]])
+### table.getAll([options, [callback]])
 
-Gets some (or one) row from the table.
+Gets all, some, or one row from the table. If `callback` is not provided omitted, returns a promise.
+
+**Example**:
+
+```js
+// Get all rows, promise style...
+const getAlbums = albums.getAll()
+getAlbums.then(function(albums){
+  // do stuff with albums
+}).error(function(err){
+  // handle errors
+})
+
+// ...or use callback style
+albums.getAll(function(error, albums){
+  if (error) {
+    // handle errors
+    return;
+  }
+  // do stuff with albums
+})
+```
 
 <a name="conditions"></a>
 #### <code>conditions</code>
@@ -339,9 +362,9 @@ albums.get([
 
 --------------------------------------------------------
 <a name='del'></a>
-### table.del(conditions, options, callback)
+### table.del(conditions, options, [callback])
 
-Deletes rows from the database.
+Deletes rows from the database. If `callback` is omitted, returns a promise.
 
 **Be careful** – you can truncate an entire table with this command.
 
