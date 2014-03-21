@@ -108,6 +108,31 @@ test('table.get, relationships', function (t) {
   })
 })
 
+test('table.get, nested relationships', function (t) {
+  useDb(t, ['user', 'book', 'review'], function (db, done) {
+    const user = makeUserTable(db)
+    const book = makeBookTable(db)
+    const review = makeReviewTable(db)
+
+    review.getOne({ id: 1 }, {
+      debug: true,
+      relationships: true,
+      relationshipsDepth: -1
+    }, function (err, review) {
+      t.notOk(err, 'no errors')
+      t.same(review.test(), 'This is a review', 'review is model instance')
+      t.ok(review.book, 'review book returned')
+      t.same(review.book.test(), 'This is a book', 'book is model instance')
+      t.ok(review.book.author, 'review book author returned')
+      t.same(review.book.author.test(), 'This is a user', 'author is model instance')
+      t.ok(review.book.author.books, 'review book author publications returned')
+      t.same(review.book.author.books[0].test(), 'This is a book', 'review book author publications are model instances')
+
+      t.end()
+    })
+  })
+})
+
 // https://github.com/brianloveswords/streamsql/issues/5
 test('table.getOne, should not hang on empty rows', function (t) {
   useDb(t, ['empty'], function (db, done) {
@@ -128,6 +153,11 @@ function value(name) { return function (obj) { return obj[name] } }
 function makeUserTable(db) {
   return db.table('user', {
     fields: ['first_name', 'last_name', 'age'],
+    methods: {
+      test: function testUserMethods () {
+        return 'This is a user'
+      }
+    },
     relationships: {
       books: {
         type: 'hasMany',
@@ -142,6 +172,11 @@ function makeUserTable(db) {
 function makeBookTable(db) {
   return db.table('book', {
     fields: [ 'id', 'author_id', 'title', 'release_date' ],
+    methods: {
+      test: function testBookMethods () {
+        return 'This is a book'
+      }
+    },
     relationships: {
       author: {
         type: 'hasOne',
@@ -149,5 +184,23 @@ function makeBookTable(db) {
         foreign: { table: 'user', key: 'id' },
       },
     },
+  })
+}
+
+function makeReviewTable(db) {
+  return db.table('review', {
+    fields: ['id', 'book_id', 'link'],
+    methods: {
+      test: function testReviewMethods () {
+        return 'This is a review'
+      }
+    },
+    relationships: {
+      book: {
+        type: 'hasOne',
+        local: 'book_id',
+        foreign: { table: 'book', key: 'id' },
+      }
+    }
   })
 }
