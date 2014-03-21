@@ -106,12 +106,36 @@ tableProto.get = function get(cnd, opts, callback) {
 
   const table = this.table
   const tableCache = this.db.tables
-  var relationships = opts.relationships || {}
+
+  var relationshipsDepth = opts.relationshipsDepth
+  var relationships = opts.relationships
 
   if (typeof relationships == 'boolean' &&
       relationships === true) {
+    // Use all relationships if `relationships === true`
     relationships = this.relationships
+  } else if (typeof relationships == 'number') {
+    // Use all relationships
+    relationshipsDepth = relationships
+    relationships = this.relationships
+  } else if (relationships instanceof Array) {
+    // Use subset of relationships if array of keys given
+    relationships = relationships.reduce(function (r, relation) {
+      if (this.relationships.hasOwnProperty(relation))
+        r[relation] = this.relationships[relation]
+      return r
+    }.bind(this), {})
+  } else if (this.relationships.hasOwnProperty(relationships)) {
+    // Use single relationship if key given
+    var relation = relationships
+    relationships = {}
+    relationships[relation] = this.relationships[relation]
+  } else {
+    // Use no relationships
+    relationships = {}
   }
+
+  relationships = buildRelationships(table, relationships, relationshipsDepth)
 
   const selectSql = driver.selectSql({
     db: this.db,
@@ -161,6 +185,45 @@ tableProto.get = function get(cnd, opts, callback) {
         return new RowClass(row)
       }))
     })
+  }
+
+  function buildRelationships (table, base, depth, history) {
+    if (depth === true)
+      depth = Infinity
+
+    depth = depth === Infinity || depth < 0 ? Infinity : parseInt(depth, 10)
+
+    if (isNaN(depth) || !depth)
+      return base
+
+    history = history || []
+
+    return Object.keys(base).reduce(function (relationships, relation) {
+      const relationship = base[relation]
+      const key = [table, relationship.foreign.table].join(':')
+
+      if (history.indexOf(key) > -1)
+        return relationships
+
+      history.push(key)
+
+      relationship.foreign.as = relationship.foreign.as || relation
+
+      const foreignTable = tableCache[relationship.foreign.table];
+
+      if (foreignTable && (depth - 1))
+        relationship.relationships =
+          buildRelationships(
+            relationship.foreign.table,
+            foreignTable.relationships,
+            depth - 1,
+            history
+          )
+
+      relationships = relationships || {}
+      relationships[relation] = relationship
+      return relationships
+    }, undefined)
   }
 
   if (opts.debug)
