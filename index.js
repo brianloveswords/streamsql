@@ -131,8 +131,8 @@ tableProto.get = function get(cnd, opts, callback) {
     relationships = {}
     relationships[relation] = this.relationships[relation]
   } else {
-    // Use no relationships
-    relationships = {}
+    // Use given relationships, or empty if not provided
+    relationships = relationships || {}
   }
 
   relationships = buildRelationships(table, relationships, relationshipsDepth)
