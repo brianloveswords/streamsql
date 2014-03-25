@@ -64,6 +64,7 @@ test('table.get, relationships', function (t) {
   useDb(t, ['user', 'book'], function (db, done) {
     const user = makeUserTable(db)
     const book = makeBookTable(db)
+    const review = makeReviewTable(db)
 
     book.get({}, {
       debug: true,
@@ -227,6 +228,12 @@ function makeBookTable(db) {
         type: 'hasOne',
         local: 'author_id',
         foreign: { table: 'user', key: 'id' },
+      },
+      reviews: {
+        type: 'hasMany',
+        local: 'id',
+        foreign: { table: 'review', key: 'book_id' },
+        optional: true,
       },
     },
   })

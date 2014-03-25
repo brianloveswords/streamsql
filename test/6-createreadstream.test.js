@@ -6,7 +6,7 @@ const tables = ['user', 'book', 'profile', 'review']
 
 test('table.createReadStream: basic', function (t) {
   useDb(t, tables, function (db, done) {
-    const book = makeBookDb(db)
+    const book = makeBookTable(db)
     const rs = book.createReadStream()
     rs.pipe(concat(function (streamRows) {
       book.get(function (err, getRows) {
@@ -23,7 +23,7 @@ test('table.createReadStream: basic', function (t) {
 
 test('table.createReadStream: limits and pages', function (t) {
   useDb(t, tables, function (db, done) {
-    const book = makeBookDb(db)
+    const book = makeBookTable(db)
 
     book.createReadStream({}, {
       limit: 1,
@@ -39,9 +39,9 @@ test('table.createReadStream: limits and pages', function (t) {
 
 test('table.createReadStream: hasOne relationships', function (t) {
   useDb(t, tables, function (db, done) {
-    const author = makeUserDb(db)
-    const book = makeBookDb(db)
-    const profile = makeProfileDb(db)
+    const author = makeUserTable(db)
+    const book = makeBookTable(db)
+    const profile = makeProfileTable(db)
 
     book.createReadStream({}, {
       debug: true,
@@ -81,13 +81,12 @@ test('table.createReadStream: hasOne relationships', function (t) {
   })
 })
 
-
 test('table.createReadStream: hasMany relationships', function (t) {
   useDb(t, tables, function (db, done) {
-    const user = makeUserDb(db)
-    const book = makeBookDb(db)
-    const story = makeStoryDb(db)
-    const review = makeReviewDb(db)
+    const user = makeUserTable(db)
+    const book = makeBookTable(db)
+    const story = makeStoryTable(db)
+    const review = makeReviewTable(db)
 
     const bookStream = book.createReadStream({}, {
       debug: true,
@@ -113,12 +112,30 @@ test('table.createReadStream: hasMany relationships', function (t) {
   })
 })
 
-function makeProfileDb(db) {
+test('table.createReadStream: nested relationships', function (t) {
+  useDb(t, tables, function (db, done) {
+    const user = makeUserTable(db)
+    const book = makeBookTable(db)
+    const review = makeReviewTable(db)
+
+    review.createReadStream({}, {
+      debug: true,
+      relationships: true,
+      relationshipsDepth: -1
+    }).pipe(concat(function (rows) {
+      t.ok(rows[0].book.author, 'should not be undefined') // FAILS
+      t.end()
+    }))
+  })
+})
+
+
+function makeProfileTable(db) {
   return db.table('profile', {
     fields: [ 'id', 'author_id', 'bio' ],
   })
 }
-function makeUserDb(db) {
+function makeUserTable(db) {
   return db.table('user', {
     fields: [ 'id', 'first_name', 'last_name' ],
     methods: {
@@ -126,10 +143,18 @@ function makeUserDb(db) {
         return [this.first_name, this.last_name].join(' ')
       }
     },
+    relationships: {
+      books: {
+        type: 'hasMany',
+        local: 'id',
+        foreign: { table: 'book', key: 'author_id' },
+        optional: true,
+      }
+    },
   })
 }
 
-function makeBookDb(db) {
+function makeBookTable(db) {
   return db.table('book', {
     fields: [ 'id', 'author_id', 'title', 'release_date' ],
     methods: {
@@ -138,10 +163,17 @@ function makeBookDb(db) {
         return [author.first_name, author.last_name].join(' ')
       }
     },
+    relationships: {
+      author: {
+        type: 'hasOne',
+        local: 'author_id',
+        foreign: { table: 'user', key: 'id' },
+      },
+    },
   })
 }
 
-function makeStoryDb(db) {
+function makeStoryTable(db) {
   return db.table('story', {
     fields: [ 'id', 'book_id', 'title', ],
     methods: {
@@ -152,13 +184,20 @@ function makeStoryDb(db) {
   })
 }
 
-function makeReviewDb(db) {
+function makeReviewTable(db) {
   return db.table('review', {
     fields: ['id', 'book_id', 'link'],
     methods: {
       linkify: function () {
         return '<a href="'+this.link+'">review</a>'
       }
-    }
+    },
+    relationships: {
+      book: {
+        type: 'hasOne',
+        local: 'book_id',
+        foreign: { table: 'book', key: 'id' },
+      }
+    },
   })
 }
