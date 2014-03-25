@@ -123,7 +123,7 @@ test('table.createReadStream: nested relationships', function (t) {
       relationships: true,
       relationshipsDepth: -1
     }).pipe(concat(function (rows) {
-      t.ok(rows[0].book.author, 'should not be undefined') // FAILS
+      t.ok(rows[0].book.author, 'should not be undefined')
       t.end()
     }))
   })
