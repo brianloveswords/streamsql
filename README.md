@@ -353,6 +353,7 @@ albums.get([
 * `include`: Rows to select from the database. Any rows not in this list will not be included. Note, the primary key will **always** be included. By default, everything listed in `table.fields` will be included.
 * `exclude`: Rows in this list will not be selected from the database. If both `include` and `exclude` are defined, `include` is always preferred
 * `relationships`: Either boolean or a set of relationship definition.
+* `relationshipsDepth`: Depth of relationships to fulfil; the default is `1` - that is, only the relationships of the requested object are returned. `-1` will attempt to retrieve as many relationships as is reasonably possible.
 * `sort`: Can be one of three forms:
   - Implicit ascending, single column: <code>{sort: 'artist'}</code>
   - Implicit ascending, multiple rows: <code>{sort: ['artist', 'release_date']</code>
