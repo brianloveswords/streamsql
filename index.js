@@ -131,7 +131,6 @@ tableProto.get = function get(cnd, opts, callback) {
   const tableCache = this.db.tables
 
   const relationships = buildRelationships(this, opts.relationships, opts.relationshipsDepth)
-  console.log('Relationships:...\n%s', JSON.stringify(relationships, null, 2))
   var error = {}
 
   const selectSql = driver.selectSql({
