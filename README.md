@@ -53,7 +53,7 @@ Establish a database connection
 `streamsql` loads drivers on demand and does **not** include them as production dependencies. You will need to have either one `mysql` (tested against `2.0.0-alpha9`) or `sqlite3` (tested against `2.1.19`) in your package.json in addition to `streamsql`.
 
 
-#### mysql optionss
+#### mysql options
 See the [documentation for the mysql module](https://github.com/felixge/node-mysql#establishing-connections) for full details. The `options` object will be passed over to that.
 
 ```js
