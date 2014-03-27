@@ -53,7 +53,7 @@ Establish a database connection
 `streamsql` loads drivers on demand and does **not** include them as production dependencies. You will need to have either one `mysql` (tested against `2.0.0-alpha9`) or `sqlite3` (tested against `2.1.19`) in your package.json in addition to `streamsql`.
 
 
-#### mysql optionss
+#### mysql options
 See the [documentation for the mysql module](https://github.com/felixge/node-mysql#establishing-connections) for full details. The `options` object will be passed over to that.
 
 ```js
@@ -353,6 +353,7 @@ albums.get([
 * `include`: Rows to select from the database. Any rows not in this list will not be included. Note, the primary key will **always** be included. By default, everything listed in `table.fields` will be included.
 * `exclude`: Rows in this list will not be selected from the database. If both `include` and `exclude` are defined, `include` is always preferred
 * `relationships`: Either boolean or a set of relationship definition.
+* `relationshipsDepth`: Depth of relationships to fulfil; the default is `1` - that is, only the relationships of the requested object are returned. `-1` will attempt to retrieve as many relationships as is reasonably possible.
 * `sort`: Can be one of three forms:
   - Implicit ascending, single column: <code>{sort: 'artist'}</code>
   - Implicit ascending, multiple rows: <code>{sort: ['artist', 'release_date']</code>

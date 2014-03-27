@@ -129,13 +129,9 @@ tableProto.get = function get(cnd, opts, callback) {
 
   const table = this.table
   const tableCache = this.db.tables
-  var relationships = opts.relationships || {}
-  var error = {}
 
-  if (typeof relationships == 'boolean' &&
-      relationships === true) {
-    relationships = this.relationships
-  }
+  const relationships = buildRelationships(this, opts.relationships, opts.relationshipsDepth)
+  var error = {}
 
   const selectSql = driver.selectSql({
     db: this.db,
@@ -252,12 +248,7 @@ tableProto.createReadStream = function createReadStream(conditions, opts) {
   const fields = this.fields
   const table = this.table
 
-  var relationships = opts.relationships || {}
-
-  if (typeof relationships == 'boolean' &&
-      relationships === true) {
-    relationships = this.relationships
-  }
+  const relationships = buildRelationships(this, opts.relationships, opts.relationshipsDepth)
 
   const selectSql = driver.selectSql({
     db: this.db,
@@ -404,4 +395,74 @@ function getDriver(name) {
   const prototype = require('./lib/drivers/prototype')
   const implementation = drivers[name || 'mysql']()
   return create(prototype, implementation)
+}
+
+function buildRelationships(instance, relationships, depth) {
+  if (typeof relationships == 'boolean' &&
+      relationships === true) {
+    // Use all relationships if `relationships === true`
+    relationships = instance.relationships
+  } else if (typeof relationships == 'number') {
+    // Use all relationships
+    depth = relationships
+    relationships = instance.relationships
+  } else if (relationships instanceof Array) {
+    // Use subset of relationships if array of keys given
+    relationships = relationships.reduce(function (r, relation) {
+      if (instance.relationships.hasOwnProperty(relation))
+        r[relation] = instance.relationships[relation]
+      return r
+    }, {})
+  } else if (instance.relationships.hasOwnProperty(relationships)) {
+    // Use single relationship if key given
+    var relation = relationships
+    relationships = {}
+    relationships[relation] = instance.relationships[relation]
+  } else {
+    // Use given relationships, or empty if not provided
+    relationships = relationships || {}
+  }
+
+  return _buildRelationships(instance.table, relationships, depth, instance.db.tables)
+
+}
+
+function _buildRelationships (table, base, depth, tableCache, history) {
+  if (depth === true)
+    depth = Infinity
+
+  depth = depth === Infinity || depth < 0 ? Infinity : parseInt(depth, 10)
+
+  if (isNaN(depth) || !depth)
+    return base
+
+  history = history || []
+
+  return Object.keys(base).reduce(function (relationships, relation) {
+    const relationship = base[relation]
+    const key = [table, relationship.foreign.table].join(':')
+
+    if (history.indexOf(key) > -1)
+      return relationships
+
+    history.push(key)
+
+    relationship.foreign.as = relationship.foreign.as || relation
+
+    const foreignTable = tableCache[relationship.foreign.table];
+
+    if (foreignTable && (depth - 1))
+      relationship.relationships =
+        _buildRelationships(
+          relationship.foreign.table,
+          foreignTable.relationships,
+          depth - 1,
+          tableCache,
+          history
+        )
+
+    relationships = relationships || {}
+    relationships[relation] = relationship
+    return relationships
+  }, undefined)
 }
