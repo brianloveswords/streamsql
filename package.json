@@ -10,7 +10,7 @@
     "concat-stream": "~1.1.0",
     "map-stream": "~0.0.3",
     "xtend": "~2.1.1",
-    "bluebird": "^1.0.8"
+    "bluebird": "~1.2.0"
   },
   "devDependencies": {
     "tap": "~0.4.4",
