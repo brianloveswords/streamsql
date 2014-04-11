@@ -42,6 +42,7 @@ dbProto.registerTable = function registerTable(name, def) {
     table: def.tableName || name,
     primaryKey: primaryKey,
     fields: fields,
+    methods: def.methods || {},
     row: def.methods || {},
     constructor: def.constructor,
     relationships: def.relationships || {},
