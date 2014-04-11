@@ -53,42 +53,59 @@ dbProto.registerTable = function registerTable(name, def) {
   return table
 }
 
-tableProto.put = function put(row, callback) {
-  const resolver = hasCallback(arguments)
-    ? callbackResolver(callback, this)
-    : Promise.defer()
+tableProto.put = function put(row, opts, callback) {
+  var resolver = Promise.defer()
+  opts = opts || {}
+  if (hasCallback(arguments)) {
+    if (typeof opts == 'function') {
+      callback = opts
+      opts = {}
+    }
+    resolver = callbackResolver(callback)
+  }
 
   const table = this.table
   const primaryKey = this.primaryKey
+  const uniqueKey = opts.uniqueKey
   const driver = this.db.driver
   const insertSql = driver.insertSql(table, row)
-  const tryUpdate = primaryKey in row
+  const tryUpdate = primaryKey in row || uniqueKey
   const meta = { row: row, sql: null, insertId: null }
   const query = this.db.query(insertSql, function (err, result) {
     if (err) {
-      if (tryUpdate && driver.putShouldUpdate(err))
-        return this.update(row, resolver.callback)
+      if (tryUpdate && driver.putShouldUpdate(err, opts)) {
+        const key = uniqueKey ? uniqueKey : this.primaryKey
+        const cond = {}
+        cond[key] = row[key]
+        return this.update(row, cond, resolver.callback)
+      }
       return resolver.reject(err)
     }
 
     meta.sql = insertSql
     meta.insertId = result.insertId
 
-    return resolver.resolve( meta)
+    return resolver.resolve(meta)
   }.bind(this))
 
   return resolver.promise
 }
 
-tableProto.update = function update(row, callback) {
-  const resolver = hasCallback(arguments)
-    ? callbackResolver(callback, this)
-    : Promise.defer()
+tableProto.update = function update(row, conditions, callback) {
+  var resolver = Promise.defer()
+  conditions = conditions || {}
+  if (hasCallback(arguments)) {
+    if (typeof conditions == 'function') {
+      callback = conditions
+      conditions = {}
+    }
+    resolver = callbackResolver(callback)
+  }
 
   const table = this.table
-  const primaryKey = this.primaryKey
   const driver = this.db.driver
-  const updateSql = driver.updateSql(table, row, primaryKey)
+  const updateSql = driver.updateSql(table, row, conditions)
+
   const query = this.db.query(updateSql, handleResult)
   const meta = {
     row: row,
