@@ -1,9 +1,10 @@
 DROP TABLE IF EXISTS `user`;
 CREATE TABLE `user` (
   `id` INTEGER PRIMARY KEY AUTOINCREMENT,
-  `first_name` VARCHAR(255) NOT NULL UNIQUE,
+  `first_name` VARCHAR(255) NOT NULL,
   `last_name` VARCHAR(255),
-  `age` INTEGER
+  `age` INTEGER,
+  UNIQUE (`first_name`, `last_name`)
 );
 
 INSERT INTO `user` (`id`, `first_name`, `last_name`, `age`)

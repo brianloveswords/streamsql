@@ -66,7 +66,12 @@ tableProto.put = function put(row, opts, callback) {
 
   const table = this.table
   const primaryKey = this.primaryKey
-  const uniqueKey = opts.uniqueKey
+  var uniqueKey
+  if (opts.uniqueKey) {
+    uniqueKey = typeof opts.uniqueKey === 'string'
+      ? [opts.uniqueKey]
+      : opts.uniqueKey
+  }
   const driver = this.db.driver
   const insertSql = driver.insertSql(table, row)
   const tryUpdate = primaryKey in row || uniqueKey
@@ -74,9 +79,11 @@ tableProto.put = function put(row, opts, callback) {
   const query = this.db.query(insertSql, function (err, result) {
     if (err) {
       if (tryUpdate && driver.putShouldUpdate(err, opts)) {
-        const key = uniqueKey ? uniqueKey : this.primaryKey
-        const cond = {}
-        cond[key] = row[key]
+        const keys = uniqueKey ? uniqueKey : [primaryKey]
+        const cond = keys.reduce(function (cond, key) {
+          cond[key] = row[key]
+          return cond
+        }, {})
         return this.update(row, cond, resolver.callback)
       }
       return resolver.reject(err)

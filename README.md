@@ -250,13 +250,27 @@ Returns a `table` object.
 
 --------------------------------------------------------
 <a name='put'></a>
-### table.put(row, [callback])
+### table.put(row, [options, [callback]])
 
 Inserts or updates a single row. If `callback` is not provided, returns a promise.
 
 An insert will always be attempted first. If the insert fails with an duplicate entry error (as tested by the specific driver implementation) **and** the row contains the table's primaryKey, an update will be attempted
 
-`callback` will receive two arguments: `err`, `result`. Result should have three properties, `row`, `sql`, and `insertId`. If the result of a `put()` is an update, the result will have `affectedRows` instead of `insertId`.
+`callback` will receive two arguments: `err`, `result`. Result should have three properties, `row`, `sql`, and `insertId`. This behavior can be changed with the `uniqueKey` option, see below.
+
+ If the result of a `put()` is an update, the result will have `affectedRows` instead of `insertId`.
+
+<a name="get-options"></a>
+#### <code>options</code>
+
+* `uniqueKey`: This option changes the way a `put()` turns into an `update()`. Instead of checking for a duplicate primary key error, it will check for duplicate unique key errors. For example, if you have a table with `UNIQUE KEY (`firstName`, `lastName`)`, you can do:
+  ```js
+  users.put({
+    firstName: 'John',
+    lastName: 'Doe',
+    age: 33,
+  }, {uniqueKey: ['John', 'Doe']})
+  ```
 
 --------------------------------------------------------
 <a name='get'></a>
