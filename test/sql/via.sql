@@ -12,25 +12,26 @@ CREATE TABLE `viaSecondary` (
 
 DROP TABLE IF EXISTS `viaThrough`;
 CREATE TABLE `viaThrough` (
+  `id` BIGINT AUTO_INCREMENT PRIMARY KEY,
   `primary_id` BIGINT,
   `secondary_id` BIGINT,
   UNIQUE KEY `first_second` (`primary_id`, `secondary_id`)
 );
 
-INSERT INTO `viaPrimary` (`label`) VALUES
-  ('the'),
-  ('and'),
-  ('to');
+INSERT INTO `viaPrimary` (`id`, `label`) VALUES
+  (1, 'the'),
+  (2, 'and'),
+  (3, 'to');
 
-INSERT INTO `viaSecondary` (`label`) VALUES
-  ('as'),
-  ('had'),
-  ('with');
+INSERT INTO `viaSecondary` (`id`, `label`) VALUES
+  (1, 'as'),
+  (2, 'had'),
+  (3, 'with');
 
-INSERT INTO `viaThrough` (`primary_id`, `secondary_id`) VALUES
-  (1, 1),
-  (1, 2),
-  (1, 3),
-  (2, 2),
-  (2, 3),
-  (3, 1);
+INSERT INTO `viaThrough` (`id`, `primary_id`, `secondary_id`) VALUES
+  (1, 1, 1),
+  (2, 1, 2),
+  (3, 1, 3),
+  (4, 2, 2),
+  (5, 2, 3),
+  (6, 3, 1);

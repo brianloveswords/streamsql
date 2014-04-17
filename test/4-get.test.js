@@ -313,7 +313,6 @@ function makeViaSecondaryTable(db) {
 
 function makeViaThroughTable(db) {
   return db.table('viaThrough', {
-    primaryKey: 'primary_id',  // Can we make compound keys?
     fields: ['primary_id', 'secondary_id']
   })
 }
