@@ -134,6 +134,32 @@ test('table.get, nested relationships', function (t) {
 })
 
 
+test('table.get, many-to-many relationships', function (t) {
+  useDb(t, ['via'], function (db, done) {
+    const primary = makeViaPrimaryTable(db);
+    const secondary = makeViaSecondaryTable(db);
+    const via = makeViaThroughTable(db);
+
+    primary.get({}, {
+      debug: true,
+      relationships: true
+    }, function (err, rows) {
+      t.same(rows.length, 3)
+      t.same(rows[0].things.length, 3)
+
+      secondary.get({id: 2}, {
+        debug: true,
+        relationships: true
+      }, function (err, rows) {
+        t.same(rows.length, 1)
+        t.same(rows[0].things.length, 2)
+
+        t.end()
+      });
+    })
+  })
+})
+
 // https://github.com/brianloveswords/streamsql/issues/10
 test('table.get, relationships should not hang when query returns empty set', function (t) {
   useDb(t, ['user', 'book'], function (db, done) {
@@ -254,5 +280,40 @@ function makeReviewTable(db) {
         foreign: { table: 'book', key: 'id' },
       }
     }
+  })
+}
+
+function makeViaPrimaryTable(db) {
+  return db.table('viaPrimary', {
+    fields: ['id', 'label'],
+    relationships: {
+      things: {
+        type: 'hasMany',
+        local: 'id',
+        foreign: { table: 'viaSecondary', key: 'id' },
+        via: { table: 'viaThrough', local: 'primary_id', foreign: 'secondary_id' }
+      }
+    }
+  })
+}
+
+function makeViaSecondaryTable(db) {
+  return db.table('viaSecondary', {
+    fields: ['id', 'label'],
+    relationships: {
+      things: {
+        type: 'hasMany',
+        local: 'id',
+        foreign: { table: 'viaPrimary', key: 'id' },
+        via: { table: 'viaThrough', local: 'secondary_id', foreign: 'primary_id' }
+      }
+    }
+  })
+}
+
+function makeViaThroughTable(db) {
+  return db.table('viaThrough', {
+    primaryKey: 'primary_id',  // Can we make compound keys?
+    fields: ['primary_id', 'secondary_id']
   })
 }
