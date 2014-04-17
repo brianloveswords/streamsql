@@ -187,7 +187,7 @@ id | firstName | lastName
  4 | Britt     | Walford
 ```
 
-**`band_member`** table
+**`bandMember`** table
 
 ```
 id | bandId | memberId
@@ -235,7 +235,7 @@ const member = db.table('member', {
   }
 })
 
-const band_member = db.table('band_member', {
+const bandMember = db.table('bandMember', {
   fields: [ 'bandId', 'memberId' ]
 })
 
