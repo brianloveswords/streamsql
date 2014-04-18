@@ -130,6 +130,32 @@ test('table.get, nested relationships', function (t) {
   })
 })
 
+test('table.get, many-to-many relationships', function (t) {
+  sqliteLoad(db, ['via-sqlite'], function () {
+    const primary = makeViaPrimaryTable(db);
+    const secondary = makeViaSecondaryTable(db);
+    const via = makeViaThroughTable(db);
+
+    primary.get({}, {
+      debug: true,
+      relationships: true
+    }, function (err, rows) {
+      t.same(rows.length, 3)
+      t.same(rows[0].things.length, 3)
+
+      secondary.get({id: 2}, {
+        debug: true,
+        relationships: true
+      }, function (err, rows) {
+        t.same(rows.length, 1)
+        t.same(rows[0].things.length, 2)
+
+        t.end()
+      });
+    })
+  })
+})
+
 function value(name) { return function (obj) { return obj[name] } }
 
 function makeUserTable(db) {
@@ -190,5 +216,39 @@ function makeReviewTable(db) {
         foreign: { table: 'book', key: 'id' },
       }
     }
+  })
+}
+
+function makeViaPrimaryTable(db) {
+  return db.table('viaPrimary', {
+    fields: ['id', 'label'],
+    relationships: {
+      things: {
+        type: 'hasMany',
+        local: 'id',
+        foreign: { table: 'viaSecondary', key: 'id' },
+        via: { table: 'viaThrough', local: 'primary_id', foreign: 'secondary_id' }
+      }
+    }
+  })
+}
+
+function makeViaSecondaryTable(db) {
+  return db.table('viaSecondary', {
+    fields: ['id', 'label'],
+    relationships: {
+      things: {
+        type: 'hasMany',
+        local: 'id',
+        foreign: { table: 'viaPrimary', key: 'id' },
+        via: { table: 'viaThrough', local: 'secondary_id', foreign: 'primary_id' }
+      }
+    }
+  })
+}
+
+function makeViaThroughTable(db) {
+  return db.table('viaThrough', {
+    fields: ['primary_id', 'secondary_id']
   })
 }

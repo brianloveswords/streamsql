@@ -146,6 +146,10 @@ You can define relationships on the data coming out `createReadStream` , `get` o
 * `local`: Definition for the left side of the join. If you're just joining on a key normally found in the current table, this can be a string. If you are doing a cascading join (i.e., joining against a field acquired from a different join) you can use an object here:
   * `table`: The name of the table. **Important** if you aliased the table with `as`, use the alias here.
   * `key`: Key to use
+* `via`: Used for many-to-many relationships, where a third table is required to maintain data associations:
+  * `table`: The name of the linking table, as registered with `db.table`.
+  * `local`: The key in the linking table associated with the local table.
+  * `foreign`: The key in the linking table associated with the foreign table.
 * `optional`: Whether or not the relationship is optional (INNER vs LEFT join). Defaults to `false`.
 
 The results of the fulfilled relationship will be attached to the main row by their key in the `relationships` object. All foreign items will have their methods as you defined them when setting up the table with `db.table`, or use their configured `constructor` where applicable.
@@ -155,30 +159,45 @@ The results of the fulfilled relationship will be attached to the main row by th
 **`band`** table
 
 ```
-id | name   | founded | disbanded
----|--------|---------|-----------
- 1 | Slint  |    1986 |      1992
+id | name          | founded | disbanded
+---|---------------|---------|-----------
+ 1 | Squirrel Bait |    1983 |      1988
+ 2 | Slint         |    1986 |      1992
 ```
 
 **`album`** table
 
 ```
-id | bandId | name        | released
----|--------|-------------|----------
- 1 |      1 | Tweez       |     1989
- 2 |      1 | Spiderland  |     1991
+id | bandId | name          | released
+---|--------|---------------|----------
+ 1 |      1 | Squirrel Bait |     1985
+ 2 |      1 | Skag Heaven   |     1987
+ 3 |      2 | Tweez         |     1989
+ 4 |      2 | Spiderland    |     1991
 ```
-
 
 **`member`** table
 
 ```
-id | bandId | firstName | lastName
----|--------|-----------|----------
- 1 |      1 | Brian     | McMahon
- 2 |      1 | David     | Pajo
- 3 |      1 | Todd      | Brashear
- 4 |      1 | Britt     | Walford
+id | firstName | lastName
+---|-----------|----------
+ 1 | Brian     | McMahon
+ 2 | David     | Pajo
+ 3 | Todd      | Brashear
+ 4 | Britt     | Walford
+```
+
+**`bandMember`** table
+
+```
+id | bandId | memberId
+---|--------|----------
+ 1 |      1 |        1
+ 2 |      1 |        4
+ 3 |      2 |        1
+ 4 |      2 |        2
+ 5 |      2 |        3
+ 6 |      2 |        4
 ```
 
 
@@ -194,7 +213,8 @@ const band = db.table('band', {
     members: {
       type: 'hasMany',
       local: 'id',
-      foreign: { table: 'member', key: 'bandId' }
+      foreign: { table: 'member', key: 'id' },
+      via: { table: 'bandMember', local: 'bandId', foreign: 'memberId' }
     }
   }
 })
@@ -204,36 +224,58 @@ const album = db.table('album', {
 })
 
 const member = db.table('member', {
-  fields: [ 'bandId', 'firstName', 'lastName' ]
+  fields: [ 'firstName', 'lastName' ],
+  relationships: {
+    bands: {
+      type: 'hasMany',
+      local: 'id',
+      foreign: { table: 'band', key: 'id' },
+      via: { table: 'bandMember', local: 'memberId', foreign: 'bandId' }
+    }
+  }
+})
+
+const bandMember = db.table('bandMember', {
+  fields: [ 'bandId', 'memberId' ]
 })
 
 // NOTE: for efficiency, relationships are not automatically populated.
 // You must pass { relationships: `true` } to fulfill the relationships
 // defined on the table at time of `get` or `createReadStream`
 
-band.getOne({}, {
+band.get({}, {
   debug: true,
   relationships: true
-}, function (err, row) {
-  console.dir(row)
+}, function (err, rows) {
+  console.dir(rows)
 })
 ```
 
 Will result in:
 
 ```js
-{ id: 1,
-  name: 'Slint',
-  founded: 1986,
-  disbanded: 1992,
-  albums:
-   [ { id: 1, bandId: 1, name: 'Tweez', released: 1989 },
-     { id: 2, bandId: 1, name: 'Spiderland', released: 1991 } ],
-  members:
-   [ { id: 1, bandId: 1, firstName: 'Brian', lastName: 'McMahon' },
-     { id: 2, bandId: 1, firstName: 'David', lastName: 'Pajo' },
-     { id: 3, bandId: 1, firstName: 'Todd', lastName: 'Brashear' },
-     { id: 4, bandId: 1, firstName: 'Britt', lastName: 'Walford' } ] }
+[ { id: 1,
+    name: 'Squirrel Bait',
+    founded: 1983,
+    disbanded: 1988,
+    albums:
+     [ { id: 1, bandId: 1, name: 'Squirrel Bait', released: 1985 },
+       { id: 2, bandId: 1, name: 'Skag Heaven', released: 1987 } ],
+    members:
+     [ { id: 1, firstName: 'Brian', lastName: 'McMahon' },
+       { id: 4, firstName: 'Britt', lastName: 'Walford' } ] },
+  { id: 2,
+    name: 'Slint',
+    founded: 1986,
+    disbanded: 1992,
+    albums:
+     [ { id: 3, bandId: 2, name: 'Tweez', released: 1989 },
+       { id: 4, bandId: 2, name: 'Spiderland', released: 1991 } ],
+    members:
+     [ { id: 1, firstName: 'Brian', lastName: 'McMahon' },
+       { id: 2, firstName: 'David', lastName: 'Pajo' },
+       { id: 3, firstName: 'Todd', lastName: 'Brashear' },
+       { id: 4, firstName: 'Britt', lastName: 'Walford' } ] } ]
 ```
 
 Returns a `table` object.
