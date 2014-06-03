@@ -24,3 +24,20 @@ test('table.get', function (t) {
     })
   })
 })
+
+test('table.get, OR query', function (t) {
+  sqliteLoad(db, ['user-sqlite'], function () {
+    const user = db.table('user', {
+      fields: ['first_name', 'last_name'],
+    })
+
+    user.del([{age: {value: 65, operation: '>='}}, {first_name: 'George'}], {
+      debug: true
+    }, function (err, result) {
+      t.notOk(err, 'No errors')
+      t.same(result.affectedRows, 2, 'should affect two rows')
+
+      t.end()
+    })
+  })
+})

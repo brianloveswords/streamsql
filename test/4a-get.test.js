@@ -156,6 +156,22 @@ test('table.get, many-to-many relationships', function (t) {
   })
 })
 
+test('table.get, OR query', function (t) {
+  sqliteLoad(db, ['user-sqlite'], function () {
+    const user = makeUserTable(db)
+
+    user.get([{age: {value: 65, operation: '>='}}, {first_name: 'George'}], {
+      debug: true
+    }, function (err, rows) {
+      t.same(rows.length, 2)
+      t.same(rows[0].first_name, 'George')
+      t.same(rows[1].first_name, 'Barry')
+
+      t.end()
+    });
+  })
+})
+
 function value(name) { return function (obj) { return obj[name] } }
 
 function makeUserTable(db) {
