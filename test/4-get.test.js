@@ -38,7 +38,7 @@ test('table.get, complex where', function (t) {
       sort: 'age',
       debug: true
     }, function (err, rows) {
-      const expect = ['Saunders', 'Link']
+      const expect = ['Link', 'Saunders']
       const result = rows.map(value('last_name'))
       t.same(result, expect, 'should have the right values')
       t.end()
