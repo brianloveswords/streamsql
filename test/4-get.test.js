@@ -26,6 +26,26 @@ test('table.get', function (t) {
   })
 })
 
+test('table.get, ordering', function (t) {
+  useDb(t, ['user'], function (db, done) {
+    const user = makeUserTable(db)
+
+    user.get({}, {
+      sort: {age: 'desc'},
+      debug: true
+    }, function (err, rows) {
+      t.notOk(err, 'No error thrown')
+      t.ok(rows[0].age > rows[1].age, 'Sorted by age descending')
+
+      user.get({}, {order: {age: 'desc'}}, function (err, moreRows) {
+        t.deepEquals(rows, moreRows, '`sort` and `order` synonymous')
+
+        t.end()
+      })
+    })
+  })
+})
+
 test('table.get, complex where', function (t) {
   useDb(t, ['user'], function (db, done) {
     const user = makeUserTable(db)
@@ -38,7 +58,7 @@ test('table.get, complex where', function (t) {
       sort: 'age',
       debug: true
     }, function (err, rows) {
-      const expect = ['Saunders', 'Link']
+      const expect = ['Link', 'Saunders']
       const result = rows.map(value('last_name'))
       t.same(result, expect, 'should have the right values')
       t.end()
