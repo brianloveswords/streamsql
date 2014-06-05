@@ -34,6 +34,26 @@ test('table.get', function (t) {
   })
 })
 
+test('table.get, ordering', function (t) {
+  sqliteLoad(db, ['user-sqlite'], function () {
+    const user = makeUserTable(db)
+
+    user.get({}, {
+      sort: {age: 'desc'},
+      debug: true
+    }, function (err, rows) {
+      t.notOk(err, 'No error thrown')
+      t.ok(rows[0].age > rows[1].age, 'Sorted by age descending')
+
+      user.get({}, {order: {age: 'desc'}}, function (err, moreRows) {
+        t.deepEquals(rows, moreRows, '`sort` and `order` synonymous')
+
+        t.end()
+      })
+    })
+  })
+})
+
 test('table.get, complex where', function (t) {
   sqliteLoad(db, ['user-sqlite'], function () {
     const user = makeUserTable(db)
