@@ -169,7 +169,7 @@ tableProto.get = function get(cnd, opts, callback) {
     include: opts.include,
     exclude: opts.exclude,
     page: opts.page,
-    order: opts.order || opts.orderBy,
+    order: opts.sort || opts.order || opts.orderBy,
   })
 
   if (typeof selectSql == 'object' && selectSql.name == 'RangeError') {
