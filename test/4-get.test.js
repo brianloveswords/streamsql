@@ -26,6 +26,35 @@ test('table.get', function (t) {
   })
 })
 
+test('table.get, pagination', function (t) {
+  useDb(t, ['user'], function (db, done) {
+    const user = makeUserTable(db)
+
+    const options = {
+      limit: 1,
+      page: 1,
+      includeTotal: true,
+      debug: true
+    };
+    const query = {
+      age: {
+        operation: ">",
+        value: 45,
+      }
+    }
+    user.get(query, function (err, rows) {
+      const expectedTotal = rows.length
+      const expectedFirstRow = rows[0]
+      user.get(query, options, function (err, data) {
+        t.same(expectedTotal, data.total, 'has correct total')
+        t.same(expectedFirstRow, data.rows[0], 'has correct first row')
+        t.same(data.rows.length, 1, 'has correct limit');
+        t.end();
+      })
+    })
+  })
+})
+
 test('table.get, ordering', function (t) {
   useDb(t, ['user'], function (db, done) {
     const user = makeUserTable(db)

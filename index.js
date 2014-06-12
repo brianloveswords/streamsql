@@ -149,21 +149,22 @@ tableProto.get = function get(cnd, opts, callback) {
     resolver = callbackResolver(callback)
   }
 
-  const RowClass = this.constructor
-  const driver = this.db.driver
+  const self = this;
+  const RowClass = self.constructor
+  const driver = self.db.driver
 
-  const table = this.table
-  const tableCache = this.db.tables
+  const table = self.table
+  const tableCache = self.db.tables
 
-  const relationships = buildRelationships(this, opts.relationships, opts.relationshipsDepth)
+  const relationships = buildRelationships(self, opts.relationships, opts.relationshipsDepth)
   var error = {}
 
   const selectSql = driver.selectSql({
-    db: this.db,
+    db: self.db,
     table: table,
     tables: tableCache,
     relationships: relationships,
-    fields: this.fields,
+    fields: self.fields,
     conditions: cnd,
     limit: opts.limit,
     include: opts.include,
@@ -177,7 +178,7 @@ tableProto.get = function get(cnd, opts, callback) {
     return setImmediate(resolver.reject.bind(null, error))
   }
 
-  this.db.query(selectSql, opts.single ? singleRow : manyRows)
+  self.db.query(selectSql, opts.single ? singleRow : manyRows)
 
   const hydrOpts = {
     table: table,
@@ -207,9 +208,23 @@ tableProto.get = function get(cnd, opts, callback) {
 
     driver.hydrateRows(rows, hydrOpts, function (err, rows) {
       if (err) return resolver.reject(err)
-      return resolver.resolve(rows.map(function (row) {
+
+      const hydratedRows = rows.map(function (row) {
         return new RowClass(row)
-      }))
+      })
+
+      if (!opts.includeTotal)
+        return resolver.resolve(hydratedRows)
+
+      const countSql = ''
+        + 'SELECT COUNT(*) AS `total` FROM $table '
+        + driver.whereSql(table, cnd)
+
+      self.getOne(countSql, function (err, data) {
+        if (err) return resolver.reject(err)
+        data.rows = hydratedRows
+        return resolver.resolve(data)
+      })
     })
   }
 
