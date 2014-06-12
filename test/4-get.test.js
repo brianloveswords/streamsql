@@ -36,10 +36,16 @@ test('table.get, pagination', function (t) {
       includeTotal: true,
       debug: true
     };
-    user.get(function (err, rows) {
+    const query = {
+      age: {
+        operation: ">",
+        value: 45,
+      }
+    }
+    user.get(query, function (err, rows) {
       const expectedTotal = rows.length
       const expectedFirstRow = rows[0]
-      user.get({}, options, function (err, data) {
+      user.get(query, options, function (err, data) {
         t.same(expectedTotal, data.total, 'has correct total')
         t.same(expectedFirstRow, data.rows[0], 'has correct first row')
         t.same(data.rows.length, 1, 'has correct limit');

@@ -216,7 +216,11 @@ tableProto.get = function get(cnd, opts, callback) {
       if (!opts.includeTotal)
         return resolver.resolve(hydratedRows)
 
-      self.getOne('SELECT COUNT(*) AS `total` FROM $table', function (err, data) {
+      const countSql = ''
+        + 'SELECT COUNT(*) AS `total` FROM $table '
+        + driver.whereSql(table, cnd)
+
+      self.getOne(countSql, function (err, data) {
         if (err) return resolver.reject(err)
         data.rows = hydratedRows
         return resolver.resolve(data)
