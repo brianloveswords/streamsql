@@ -415,6 +415,7 @@ albums.get([
   - Implicit ascending, multiple rows: <code>{sort: ['artist', 'release_date']</code>
   - Explicit: <code>{sort: { artist: 'desc', release_date: 'asc'}}</code>
 * `limit` and `page`: How many rows and which page of results to get. Example: `{limit: 25, page: 3}`
+* `includeTotal`: Instead of returning an array of rows, return an object that includes `rows` and `total`, which represents the total amount of rows. This is useful when using `limit` and `page`.
 * `debug`: When set to true, the generated SQL statement will be printed to `stderr`.
 
 --------------------------------------------------------
