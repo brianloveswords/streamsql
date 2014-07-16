@@ -209,6 +209,23 @@ test('table.get, many-to-many relationships', function (t) {
   })
 })
 
+test('table.get, OR query', function (t) {
+  useDb(t, ['user'], function (db, done) {
+    const user = makeUserTable(db)
+
+    user.get([{age: {value: 65, operation: '>='}}, {first_name: 'George'}], {
+      debug: true
+    }, function (err, rows) {
+      t.notOk(err, 'No errors')
+      t.same(rows.length, 2)
+      t.same(rows[0].first_name, 'George')
+      t.same(rows[1].first_name, 'Barry')
+
+      t.end()
+    });
+  })
+})
+
 // https://github.com/brianloveswords/streamsql/issues/10
 test('table.get, relationships should not hang when query returns empty set', function (t) {
   useDb(t, ['user', 'book'], function (db, done) {

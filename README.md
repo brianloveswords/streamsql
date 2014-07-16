@@ -392,10 +392,25 @@ albums.get({
 }, function(err, rows){ ... })
 ```
 
-Currently all of the conditions are inclusive – the where statement is joined with `AND` – so the row must match all of the parameters to be included. However, there's a final option that lets you do whatever you want:
+**Simple `OR` queries
+
+All of the examples above are inclusive – the where statement is joined with `AND` – so the row must match all of the parameters to be included. However, by passing in multiple conditions in an array, it is possible to generate an `OR` query.
+```js
+albums.get([
+ {
+   artist: ['Queen', 'Pink Floyd'],
+   release_year: 1975
+ },
+ {
+   artist: ['Electric Light Orchestra', 'Led Zeppelin'],
+   release_year: 1973
+ }
+], function(err, rows){ ... })
+```
 
 **Raw sql**
-Note, you can use `$table` as a placeholder for the current table so you don't have to hardcode it.
+
+There's a final option that lets you do whatever you want. Note, you can use `$table` as a placeholder for the current table so you don't have to hardcode it.
 ```js
 albums.get([
   'SELECT `release_date` AS `date` FROM $table WHERE `title` = ? AND `artist`= ?',
