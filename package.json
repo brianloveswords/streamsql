@@ -1,5 +1,5 @@
 {
-  "name": "streamsql",
+  "name": "@wunderlink/streamsql",
   "version": "0.8.5",
   "description": "Streaming SQL ORM",
   "main": "index.js",
